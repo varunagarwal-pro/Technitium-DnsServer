@@ -1,4 +1,4 @@
-﻿/*
+/*
 Technitium DNS Server
 Copyright (C) 2026  Shreyas Zare (shreyas@technitium.com)
 
@@ -4141,6 +4141,8 @@ namespace DnsServerCore.Dns
             int queryCount = 0;
             do
             {
+                DnsClient.ResolverContext hopContext = new DnsClient.ResolverContext();
+
                 string cnameDomain = (lastRR.RDATA as DnsCNAMERecordData).Domain;
                 if (lastRR.Name.Equals(cnameDomain, StringComparison.OrdinalIgnoreCase))
                 {
@@ -4165,7 +4167,7 @@ namespace DnsServerCore.Dns
                     if (newRequest.RecursionDesired && isRecursionAllowed)
                     {
                         //do recursion
-                        newResponse = await RecursiveResolveAsync(newRequest, remoteEP, null, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context); //CNAME expansion does not need to use cache refresh operation and should use data from cache instead
+                        newResponse = await RecursiveResolveAsync(newRequest, remoteEP, null, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext); //CNAME expansion does not need to use cache refresh operation and should use data from cache instead
                         if (newResponse is null)
                             return null; //drop request
 
@@ -4179,7 +4181,7 @@ namespace DnsServerCore.Dns
                 }
                 else if ((newResponse.Answer.Count > 0) && (newResponse.GetLastAnswerRecord() is DnsResourceRecord lastAnswer) && ((lastAnswer.Type == DnsResourceRecordType.ANAME) || (lastAnswer.Type == DnsResourceRecordType.ALIAS)))
                 {
-                    newResponse = await ProcessANAMEAsync(request, newResponse, remoteEP, protocol, isRecursionAllowed, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                    newResponse = await ProcessANAMEAsync(request, newResponse, remoteEP, protocol, isRecursionAllowed, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                     if (newResponse is null)
                         return null; //drop request
                 }
@@ -4193,7 +4195,7 @@ namespace DnsServerCore.Dns
                             if (newRequest.RecursionDesired && isRecursionAllowed)
                             {
                                 //do forced recursive resolution using empty conditional forwarders; name servers will be provided via ResolveDnsCache
-                                newResponse = await RecursiveResolveAsync(newRequest, remoteEP, [], _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                                newResponse = await RecursiveResolveAsync(newRequest, remoteEP, [], _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                                 if (newResponse is null)
                                     return null; //drop request
 
@@ -4204,7 +4206,7 @@ namespace DnsServerCore.Dns
 
                         case DnsResourceRecordType.FWD:
                             //do conditional forwarding
-                            newResponse = await RecursiveResolveAsync(newRequest, remoteEP, newResponse.Authority, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                            newResponse = await RecursiveResolveAsync(newRequest, remoteEP, newResponse.Authority, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                             if (newResponse is null)
                                 return null; //drop request
 
@@ -4212,7 +4214,7 @@ namespace DnsServerCore.Dns
                             break;
 
                         case DnsResourceRecordType.APP:
-                            newResponse = await ProcessAPPAsync(newRequest, newResponse, remoteEP, protocol, isRecursionAllowed, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                            newResponse = await ProcessAPPAsync(newRequest, newResponse, remoteEP, protocol, isRecursionAllowed, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                             if (newResponse is null)
                                 return null; //drop request
 
@@ -4385,6 +4387,8 @@ namespace DnsServerCore.Dns
 
                 do
                 {
+                    DnsClient.ResolverContext hopContext = new DnsClient.ResolverContext();
+
                     DnsDatagram newRequest = new DnsDatagram(0, false, DnsOpcode.StandardQuery, false, false, request.RecursionDesired, false, false, request.CheckingDisabled, DnsResponseCode.NoError, new DnsQuestionRecord[] { new DnsQuestionRecord(lastDomain, request.Question[0].Type, request.Question[0].Class) }, null, null, null, _udpPayloadSize, _dnssecValidation && request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None, eDnsClientSubnetOption);
 
                     //query authoritative zone first
@@ -4392,7 +4396,7 @@ namespace DnsServerCore.Dns
                     if (newResponse is null)
                     {
                         //not found in auth zone; do recursion
-                        newResponse = await RecursiveResolveAsync(newRequest, remoteEP, null, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                        newResponse = await RecursiveResolveAsync(newRequest, remoteEP, null, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                         if (newResponse is null)
                             return null; //drop request
                     }
@@ -4404,7 +4408,7 @@ namespace DnsServerCore.Dns
                         {
                             case DnsResourceRecordType.NS:
                                 //do forced recursive resolution using empty conditional forwarders; name servers will be provided via ResolverDnsCache
-                                newResponse = await RecursiveResolveAsync(newRequest, remoteEP, [], _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                                newResponse = await RecursiveResolveAsync(newRequest, remoteEP, [], _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                                 if (newResponse is null)
                                     return null; //drop request
 
@@ -4412,14 +4416,14 @@ namespace DnsServerCore.Dns
 
                             case DnsResourceRecordType.FWD:
                                 //do conditional forwarding
-                                newResponse = await RecursiveResolveAsync(newRequest, remoteEP, newResponse.Authority, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                                newResponse = await RecursiveResolveAsync(newRequest, remoteEP, newResponse.Authority, _dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                                 if (newResponse is null)
                                     return null; //drop request
 
                                 break;
 
                             case DnsResourceRecordType.APP:
-                                newResponse = await ProcessAPPAsync(newRequest, newResponse, remoteEP, protocol, isRecursionAllowed, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
+                                newResponse = await ProcessAPPAsync(newRequest, newResponse, remoteEP, protocol, isRecursionAllowed, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, hopContext);
                                 if (newResponse is null)
                                     return null; //drop request
 
