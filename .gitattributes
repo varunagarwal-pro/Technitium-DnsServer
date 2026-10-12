@@ -1,7 +1,7 @@
 ###############################################################################
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
-* text=auto
+* text=auto eol=lf
 *.sh text eol=lf
 supervisor.conf text eol=lf
 systemd.service text eol=lf

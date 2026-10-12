@@ -245,3 +245,7 @@ ModelManifest.xml
 .fake/
 
 Other/
+
+# Agent scratch/orchestration workspace - nothing permanent lives here,
+# and it must never be able to leak secrets into git history.
+/temp/
