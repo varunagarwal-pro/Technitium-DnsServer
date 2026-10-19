@@ -44,9 +44,14 @@ Dockerfile      text eol=lf
 #
 # image files are treated as binary by default.
 ###############################################################################
-#*.jpg   binary
-#*.png   binary
-#*.gif   binary
+*.jpg   binary
+*.png   binary
+*.gif   binary
+*.ico   binary
+*.zip   binary
+*.dll   binary
+*.exe   binary
+*.pdf   binary
 
 ###############################################################################
 # diff behavior for common document formats
