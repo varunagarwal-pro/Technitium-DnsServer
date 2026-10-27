@@ -353,6 +353,14 @@ function showPageMain() {
 
     checkForUpdate();
 
+    // Deep-link directly to URL section hash if specified
+    var initialHashTab = getTabFromHash(window.location.hash);
+    if (initialHashTab && initialHashTab !== "Dashboard") {
+        setTimeout(function () {
+            switchAppTab(initialHashTab, false);
+        }, 80);
+    }
+
     refreshTimerHandle = setInterval(function () {
         var type = $("input[name=rdStatType]:checked").val();
         if (type === "lastHour")
@@ -4501,7 +4509,106 @@ APP_TAB_METADATA["Cache"] = APP_TAB_METADATA["CachedZones"];
 APP_TAB_METADATA["Allowed"] = APP_TAB_METADATA["AllowedZones"];
 APP_TAB_METADATA["Blocked"] = APP_TAB_METADATA["BlockedZones"];
 
-function switchAppTab(tabName) {
+// --- URL Hash Deep-Linking & History Navigation ---
+const TAB_SLUG_MAP = {
+    "dashboard": "Dashboard",
+    "zones": "Zones",
+    "dhcp": "Dhcp",
+    "apps": "Apps",
+    "logs": "Logs",
+    "dns-client": "DnsClient",
+    "dnsclient": "DnsClient",
+    "cache": "CachedZones",
+    "cachedzones": "CachedZones",
+    "allowed": "AllowedZones",
+    "allowedzones": "AllowedZones",
+    "blocked": "BlockedZones",
+    "blockedzones": "BlockedZones",
+    "settings": "Settings",
+    "admin": "Admin",
+    "administration": "Admin",
+    "about": "About"
+};
+
+const TAB_NAME_TO_SLUG = {
+    "Dashboard": "dashboard",
+    "Zones": "zones",
+    "Dhcp": "dhcp",
+    "DhcpServer": "dhcp",
+    "Apps": "apps",
+    "Logs": "logs",
+    "DnsClient": "dns-client",
+    "Cache": "cache",
+    "CachedZones": "cache",
+    "Allowed": "allowed",
+    "AllowedZones": "allowed",
+    "Blocked": "blocked",
+    "BlockedZones": "blocked",
+    "Settings": "settings",
+    "Admin": "admin",
+    "Administration": "admin",
+    "About": "about"
+};
+
+function getTabFromHash(hash) {
+    if (!hash) return null;
+    var clean = hash.replace(/^#/, "").toLowerCase().trim();
+    return TAB_SLUG_MAP[clean] || null;
+}
+
+function updateUrlHashForTab(tabName) {
+    var slug = TAB_NAME_TO_SLUG[tabName] || tabName.toLowerCase();
+    var newHash = "#" + slug;
+    if (window.location.hash !== newHash) {
+        if (window.history && window.history.pushState) {
+            window.history.pushState({ tab: tabName }, "", newHash);
+        } else {
+            window.location.hash = newHash;
+        }
+    }
+}
+
+function handleUrlHashNavigation() {
+    if ($("#pageLogin").is(":visible")) return;
+    var targetTab = getTabFromHash(window.location.hash);
+    if (targetTab) {
+        switchAppTab(targetTab, false);
+    } else if (!window.location.hash || window.location.hash === "#" || window.location.hash === "#dashboard") {
+        switchAppTab("Dashboard", false);
+    }
+}
+
+window.addEventListener("popstate", handleUrlHashNavigation);
+window.addEventListener("hashchange", handleUrlHashNavigation);
+
+$(document).on("shown.bs.tab", "#pageMain .nav-tabs a", function (e) {
+    var href = $(e.target).attr("href");
+    if (href && href.indexOf("mainPanelTabPane") !== -1) {
+        var legacy = href.replace("#mainPanelTabPane", "");
+        var matchedTab = null;
+        for (var k in APP_TAB_METADATA) {
+            if (APP_TAB_METADATA[k].legacyTab === legacy) {
+                matchedTab = k;
+                break;
+            }
+        }
+        if (matchedTab) {
+            $(".sidebar-nav-item").removeClass("active");
+            $("#sidebarNavItem" + matchedTab).addClass("active");
+            updateAppBreadcrumbs(matchedTab);
+            updateUrlHashForTab(matchedTab);
+            if (matchedTab === "Dashboard") {
+                isDashboardTabActive = true;
+                startAutoRefreshTimer();
+            } else {
+                isDashboardTabActive = false;
+                stopAutoRefreshTimer();
+            }
+        }
+    }
+});
+
+function switchAppTab(tabName, updateUrl) {
     const meta = APP_TAB_METADATA[tabName];
     if (!meta) return;
 
@@ -4526,7 +4633,12 @@ function switchAppTab(tabName) {
     // 3. Update topbar breadcrumbs and page titles
     updateAppBreadcrumbs(tabName);
 
-    // 4. Auto-collapse on small screens
+    // 4. Update URL Hash for direct deep-linking & history
+    if (updateUrl !== false) {
+        updateUrlHashForTab(tabName);
+    }
+
+    // 5. Auto-collapse on small screens
     if ($(window).width() <= 768) {
         $("#appSidebar").removeClass("expanded");
     }
