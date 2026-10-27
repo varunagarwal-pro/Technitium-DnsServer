@@ -1,0 +1,30 @@
+﻿Be 100% honest and transparent in everything you do.
+Read the referenced files completely. Keep summaries concise, precise, and code-focused with zero filler.
+
+Target Project: D:\Sentinel-Labs\Technitium-DnsServer\ (Strict Boundary: All edits, code, and temp/staging files belong strictly inside this folder. Never touch or pollute D:\Sentinel-Labs\ root).
+
+MANDATORY FIRST ACTIONS:
+1. Read Root Directive: #file:'D:\Sentinel-Labs\.agents\AGENTS.md'
+2. Read Customization & Deployment Truth: #file:'D:\Sentinel-Labs\Technitium-DnsServer\SentinelLabs-Customization.md'
+3. Read Infrastructure & Fleet Services Truth: #file:'D:\Sentinel-Labs\Sentinel-Core\Code\services\dns\README.md' and #file:'D:\Sentinel-Labs\Sentinel-Core\Code\services\dns\TECHNITIUM_SETUP_CHECKLIST.md'
+4. Read Project Overview: #file:'D:\Sentinel-Labs\Technitium-DnsServer\README.md'
+5. Load Centralized Skills: Scan 'D:\Sentinel-Labs\.agents\skills.json' and 'D:\Sentinel-Labs\.agents\skills\' for registered capabilities (e.g. infra-*, git-workflow-and-versioning, code-review-and-quality).
+
+Guidelines:
+- Enterprise Grade: Exceed industry standards in DNS performance, low-RAM stability, 64-bit multi-threading, and build integrity.
+- Universal Approval Gate: Announce natural language WHAT/WHY and wait for explicit user approval (GO / Proceed / Approved) before modifying files or executing commands. Auto-implementation is strictly prohibited.
+- Temp Artifact Planning Mandate: Never dump monolithic plans or lengthy build logs in chat. Write comprehensive plans to 'D:\Sentinel-Labs\Technitium-DnsServer\temp\<task_name>_plan.md' and provide a concise summary with clickable file link in chat.
+- 64-Bit & Concurrency Standard: All .NET C# code and orchestration scripts must be strictly 64-bit, multi-threaded, and concurrent. Multi-node probes and operations must dispatch in parallel across Phoenix, Oregon, and Mumbai.
+- Upstream Synchronization Standard: When upgrading to a new upstream release tag, consult 'SentinelLabs-Customization.md' for the exact merge rules (Superior Code Wins: preserve CNAME/ANAME hop isolation, Modern Glassmorphism layout, and dual-layout synchronization). Rebuild dependencies from 'D:\Sentinel-Labs\TechnitiumLibrary' first.
+- Fleet Deployment Sequencing: Always deploy to all secondary nodes (Phoenix, Oregon) before deploying to the primary node (Mumbai).
+- Pure UTF-8 Without BOM: All source, config, and script files must be UTF-8 without BOM.
+- Anti-Scope-Creep: Complete the current approved task 100% before proposing or adding further improvements.
+- Requirement Traceability & Code Integrity: Maintain 100% traceability for all requirements (never silently omit or drop). Locate and wire existing implementations without creating dummy wrappers. Clean up all stubs and never recreate deleted logic.
+- Workspace Containment: Stage all temporary scripts, build artifacts, and staging files strictly under Technitium-DnsServer\temp\.
+- Response Discipline: Concise, code-focused, zero drive-by refactoring, token-efficient. If critical ambiguity exists, ask for clarification immediately.
+- Non-Negotiable Precedence & Anti-Silent Decision Directive: In case of any conflict or ambiguity between external skills and the rules in AGENTS.md or varun.txt, AGENTS.md and varun.txt STRICTLY OVER-RULE the skills without exception. The agent is strictly prohibited from making silent or autonomous decisions. In case of any conflict, divergence, or doubt, the agent MUST stop and ask the user for explicit clarification. Scratch artifacts and plans must reside strictly in <project>\temp\, mutating Git actions require explicit approval (GO), and credentials must use .astra.
+
+## Mission Objective
+The core purpose of Sentinel-Labs Technitium DNS Server is providing an enterprise-grade, privacy-first, ultra-low-latency DNS-over-TLS (DoT) and DNS-over-HTTPS (DoH) engine across our multi-node cloud fleet. Coupled with our custom Advanced Blocking engine and Modern Glassmorphism Dashboard, it intercepts ad and telemetry domains network-wide, prevents CNAME cloaking leaks, and delivers real-time query observability with zero buffering impact on connected client devices.
+
+State readiness for Technitium-DnsServer and await user instructions or explicit approval before modifying files or executing commands.
