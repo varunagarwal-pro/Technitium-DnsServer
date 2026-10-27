@@ -393,6 +393,51 @@ body {
     transition: all var(--transition-fast);
 }
 
+    /* Classic Dashboard Stats Panel Compatibility */
+    .stats-panel .total-queries {
+        background-color: rgba(102, 153, 255, 0.7);
+    }
+
+    .stats-panel .no-error {
+        background-color: rgba(92, 184, 92, 0.7);
+    }
+
+    .stats-panel .server-failure {
+        background-color: rgba(217, 83, 79, 0.7);
+    }
+
+    .stats-panel .nxdomain {
+        background-color: rgba(120, 120, 120, 0.7);
+    }
+
+    .stats-panel .refused {
+        background-color: rgba(91, 192, 222, 0.7);
+    }
+
+    .stats-panel .auth-hit {
+        background-color: rgba(150, 150, 0, 0.7);
+    }
+
+    .stats-panel .cache-hit {
+        background-color: rgba(111, 84, 153, 0.7);
+    }
+
+    .stats-panel .blocked {
+        background-color: rgba(255, 165, 0, 0.7);
+    }
+
+    .stats-panel .dropped {
+        background-color: rgba(30, 30, 30, 0.7);
+    }
+
+    .stats-panel .recursions {
+        background-color: rgba(23, 162, 184, 0.7);
+    }
+
+    .stats-panel .clients {
+        background-color: rgba(51, 122, 183, 0.7);
+    }
+
 .nav-tabs > li > a:hover {
     background: rgba(255, 255, 255, 0.95);
     border-color: rgba(37, 99, 235, 0.3) !important;
@@ -409,6 +454,15 @@ body {
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     font-weight: 700 !important;
 }
+
+    .stats-panel .stats-item {
+        width: 8.818%;
+        float: left;
+        padding: 4px;
+        margin-right: 0.3%;
+        color: #ffffff !important;
+        text-decoration: none;
+    }
 
 /* Enterprise Hero Stat Cards */
 .enterprise-hero-grid {

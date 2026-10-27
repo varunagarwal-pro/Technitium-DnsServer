@@ -458,7 +458,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                     <div id="divDashboard" style="display: none;">
                                         <!-- Enterprise Hero Telemetry Cards -->
                                         <div class="enterprise-hero-grid">
-                                            <div class="hero-stat-card total-queries">
+                                            <a href="#" class="hero-stat-card total-queries" onclick="showQueryLogs(); return false;" title="Click to view all query logs" style="text-decoration: none; color: inherit;">
                                                 <div class="hero-card-icon"><i class="fa fa-tachometer"></i></div>
                                                 <div class="hero-card-body">
                                                     <div class="hero-card-title">Total DNS Queries</div>
@@ -468,9 +468,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         <span class="hero-card-pill"><i class="fa fa-users"></i> <span id="divDashboardStatsTotalClients">0</span>&nbsp;Clients</span>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </a>
 
-                                            <div class="hero-stat-card blocked-queries">
+                                            <a href="#" class="hero-stat-card blocked-queries" onclick="showQueryLogs(null, null, null, null, 'Blocked'); return false;" title="Click to view blocked query logs" style="text-decoration: none; color: inherit;">
                                                 <div class="hero-card-icon"><i class="fa fa-shield"></i></div>
                                                 <div class="hero-card-body">
                                                     <div class="hero-card-title">Blocked by Filters</div>
@@ -482,7 +482,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         <span class="hero-card-pill"><i class="fa fa-ban"></i> Ad-Shield Filtering Active</span>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </a>
 
                                             <div class="hero-stat-card errors-card">
                                                 <div class="hero-card-icon"><i class="fa fa-heartbeat"></i></div>
@@ -493,7 +493,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         <span class="hero-card-badge badge-danger" id="divDashboardStatsTotalErrorsPercentage">0%</span>
                                                     </div>
                                                     <div class="hero-card-footer">
-                                                        <span class="hero-card-pill">ServFail:&nbsp;<b id="divDashboardStatsTotalServerFailure">0</b> &nbsp;&bull;&nbsp; Refused:&nbsp;<b id="divDashboardStatsTotalRefused">0</b> &nbsp;&bull;&nbsp; Dropped:&nbsp;<b id="divDashboardStatsTotalDropped">0</b></span>
+                                                        <span class="hero-card-pill">
+                                                            <a href="#" onclick="showQueryLogs(null, null, null, 'ServerFailure', null); return false;" title="Filter by ServerFailure" style="color: inherit; text-decoration: none;">ServFail:&nbsp;<b id="divDashboardStatsTotalServerFailure">0</b></a>
+                                                            &nbsp;&bull;&nbsp;
+                                                            <a href="#" onclick="showQueryLogs(null, null, null, 'Refused', null); return false;" title="Filter by Refused" style="color: inherit; text-decoration: none;">Refused:&nbsp;<b id="divDashboardStatsTotalRefused">0</b></a>
+                                                            &nbsp;&bull;&nbsp;
+                                                            <a href="#" onclick="showQueryLogs(null, null, null, null, 'Dropped'); return false;" title="Filter by Dropped" style="color: inherit; text-decoration: none;">Dropped:&nbsp;<b id="divDashboardStatsTotalDropped">0</b></a>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -501,29 +507,97 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                             <div class="hero-stat-card cache-card">
                                                 <div class="hero-card-icon"><i class="fa fa-bolt"></i></div>
                                                 <div class="hero-card-body">
-                                                    <div class="hero-card-title">Cache Efficiency</div>
+                                                    <div class="hero-card-title">
+                                                        <a href="#" onclick="showQueryLogs(null, null, null, null, 'Cached'); return false;" title="Filter by Cached" style="color: inherit; text-decoration: none;">Cache Efficiency</a>
+                                                    </div>
                                                     <div class="hero-card-value">
-                                                        <span id="divDashboardStatsTotalCacheHit">0</span>
-                                                        <span class="hero-card-badge badge-cache" id="divDashboardStatsTotalCacheHitPercentage">0%</span>
+                                                        <a href="#" onclick="showQueryLogs(null, null, null, null, 'Cached'); return false;" title="Filter by Cached" style="color: inherit; text-decoration: none;">
+                                                            <span id="divDashboardStatsTotalCacheHit">0</span>
+                                                            <span class="hero-card-badge badge-cache" id="divDashboardStatsTotalCacheHitPercentage">0%</span>
+                                                        </a>
                                                     </div>
                                                     <div class="hero-card-footer">
-                                                        <span class="hero-card-pill">Recursive:&nbsp;<b id="divDashboardStatsTotalRecursions">0</b>&nbsp;<span style="opacity: 0.85;">(<span id="divDashboardStatsTotalRecursionsPercentage">0%</span>)</span> &nbsp;&bull;&nbsp; Auth:&nbsp;<b id="divDashboardStatsTotalAuthHit">0</b></span>
+                                                        <span class="hero-card-pill">
+                                                            <a href="#" onclick="showQueryLogs(null, null, null, null, 'Recursive'); return false;" title="Filter by Recursive" style="color: inherit; text-decoration: none;">Recursive:&nbsp;<b id="divDashboardStatsTotalRecursions">0</b>&nbsp;<span style="opacity: 0.85;">(<span id="divDashboardStatsTotalRecursionsPercentage">0%</span>)</span></a>
+                                                            &nbsp;&bull;&nbsp;
+                                                            <a href="#" onclick="showQueryLogs(null, null, null, null, 'Authoritative'); return false;" title="Filter by Authoritative" style="color: inherit; text-decoration: none;">Auth:&nbsp;<b id="divDashboardStatsTotalAuthHit">0</b></a>
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <!-- Hidden DOM sinks to maintain 100% backward compatibility with legacy scripts -->
-                                        <div style="display: none;">
-                                            <span id="divDashboardStatsTotalNoError">0</span>
-                                            <span id="divDashboardStatsTotalNoErrorPercentage">0%</span>
-                                            <span id="divDashboardStatsTotalServerFailurePercentage">0%</span>
-                                            <span id="divDashboardStatsTotalNxDomain">0</span>
-                                            <span id="divDashboardStatsTotalNxDomainPercentage">0%</span>
-                                            <span id="divDashboardStatsTotalRefusedPercentage">0%</span>
-                                            <span id="divDashboardStatsTotalAuthHitPercentage">0%</span>
-                                            <span id="divDashboardStatsTotalDroppedPercentage">0%</span>
+                                        <!-- Classic Layout Stats Panel with Upstream v15.6.2 Interactive Query Log Links -->
+                                        <div class="stats-panel">
+                                            <a href="#" class="stats-item total-queries">
+                                                <div class="number" id="divDashboardStatsTotalQueriesLegacy">100</div>
+                                                <div class="percentage">100%</div>
+                                                <div class="title">Total Queries</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item no-error" data-rcode="NoError">
+                                                <div class="number" id="divDashboardStatsTotalNoError">70</div>
+                                                <div class="percentage" id="divDashboardStatsTotalNoErrorPercentage">0%</div>
+                                                <div class="title">No Error</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item server-failure" data-rcode="ServerFailure">
+                                                <div class="number" id="divDashboardStatsTotalServerFailureLegacy">5</div>
+                                                <div class="percentage" id="divDashboardStatsTotalServerFailurePercentage">0%</div>
+                                                <div class="title">Server Failure</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item nxdomain" data-rcode="NxDomain">
+                                                <div class="number" id="divDashboardStatsTotalNxDomain">5</div>
+                                                <div class="percentage" id="divDashboardStatsTotalNxDomainPercentage">0%</div>
+                                                <div class="title">NX Domain</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item refused" data-rcode="Refused">
+                                                <div class="number" id="divDashboardStatsTotalRefusedLegacy">10</div>
+                                                <div class="percentage" id="divDashboardStatsTotalRefusedPercentage">0%</div>
+                                                <div class="title">Refused</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item auth-hit" data-response-type="Authoritative">
+                                                <div class="number" id="divDashboardStatsTotalAuthHitLegacy">10</div>
+                                                <div class="percentage" id="divDashboardStatsTotalAuthHitPercentage">0%</div>
+                                                <div class="title">Authoritative</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item recursions" data-response-type="Recursive">
+                                                <div class="number" id="divDashboardStatsTotalRecursionsLegacy">10</div>
+                                                <div class="percentage" id="divDashboardStatsTotalRecursionsPercentage">0%</div>
+                                                <div class="title">Recursive</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item cache-hit" data-response-type="Cached">
+                                                <div class="number" id="divDashboardStatsTotalCacheHitLegacy">10</div>
+                                                <div class="percentage" id="divDashboardStatsTotalCacheHitPercentage">0%</div>
+                                                <div class="title">Cached</div>
+                                            </a>
+
+                                            <a href="#" class="stats-item blocked" data-response-type="Blocked">
+                                                <div class="number" id="divDashboardStatsTotalBlockedLegacy">10</div>
+                                                <div class="percentage" id="divDashboardStatsTotalBlockedPercentage">0%</div>
+                                                <div class="title">Blocked</div>
+                                            </a>
+
+                                            <div class="stats-item dropped">
+                                                <div class="number" id="divDashboardStatsTotalDroppedLegacy">5</div>
+                                                <div class="percentage" id="divDashboardStatsTotalDroppedPercentage">0%</div>
+                                                <div class="title">Dropped</div>
+                                            </div>
+
+                                            <div class="stats-item stats-last-item clients">
+                                                <div class="number" id="divDashboardStatsTotalClientsLegacy">10</div>
+                                                <div class="percentage">&nbsp;</div>
+                                                <div class="title">Clients</div>
+                                            </div>
+                                        </div>                                            </div>
                                         </div>
+
+
 
                                         <!-- Main Chart Container with Sleek Glass Frame & Sub-View Switcher -->
                                         <div class="dashboard-chart-card">
@@ -5669,7 +5743,7 @@ MII...
                     <div id="divEditZoneFile">
                         <div class="form-group">
                             <label for="txtEditZoneFileText" class="control-label">Zone File Editor</label>
-                            <textarea id="txtEditZoneFileText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap;"></textarea>
+                            <textarea id="txtEditZoneFileText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap; font-family: monospace; font-size: 12px; "></textarea>
                         </div>
 
                         <div class="form-group">
@@ -5682,7 +5756,7 @@ MII...
                         </div>
 
                         <p><b>Note!</b> The <code>$ORIGIN</code> and <code>$TTL</code> values will be automatically set if not specified.</p>
-                        <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync.</p>
+                        <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync and require a manual resync.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -5757,13 +5831,13 @@ MII...
                     <div id="divImportZoneTextEditor">
                         <div class="form-group">
                             <label for="txtImportZoneText" class="control-label">Text Editor</label>
-                            <textarea id="txtImportZoneText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap;"></textarea>
+                            <textarea id="txtImportZoneText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap; font-family: monospace; font-size: 12px;"></textarea>
                             <div style="padding-top: 5px;">Enter the records to be imported above in standard zone file format.</div>
                         </div>
                     </div>
 
                     <p><b>Note!</b> The <code>$ORIGIN</code> and <code>$TTL</code> values will be automatically set if not specified.</p>
-                    <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync.</p>
+                    <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync and require a manual resync.</p>
                 </div>
                 <div class="modal-footer">
                     <button id="btnImportZone" type="submit" class="btn btn-primary" data-loading-text="Importing..." onclick="importZone(); return false;">Import</button>
