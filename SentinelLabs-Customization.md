@@ -109,3 +109,49 @@ ssh -p 41022 -i $key "vexa@${ip}" "dig +short @127.0.0.1 google.com; rm -f /tmp/
 - **Config Directory:** `/etc/dns` (binary format, modified via web console or REST API)
 - **Systemd Unit:** `/etc/systemd/system/dns.service` (runs as unprivileged user `dns-server:dns-server`)
 - **Low-Memory Override:** `/etc/systemd/system/dns.service.d/override.conf` (Workstation GC `gcServer=0`, 180MB heap ceiling `0xB400000`).
+
+## 5. Forward-Confirmed Reverse DNS (Auto PTR + Wild IP Architecture)
+
+The cluster utilizes the **Auto PTR (v5.0)** and **Wild IP (v6.1)** DNS applications to provide automated Forward-Confirmed Reverse DNS (FCrDNS) for WireGuard mesh identities (`10.13.13.x`), private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), and cluster IPs without maintaining manual record tables.
+
+### Sub-Zone Topology (Zero Cloudflare Collision)
+To prevent collisions with Cloudflare-hosted apex domains, primary zones are isolated strictly to dedicated sub-zones (`ip.<domain>`):
+- **Mumbai (`80.225.252.237`):** `ip.agrawal.pro` + `10.in-addr.arpa` + `168.192.in-addr.arpa`
+- **Phoenix (`129.146.39.180`):** `ip.vastrikafashion.in` + `10.in-addr.arpa` + `168.192.in-addr.arpa`
+- **Oregon (`35.212.133.199`):** `ip.agarwal.us.kg` + `10.in-addr.arpa` + `168.192.in-addr.arpa`
+
+### Cloudflare Boundary
+- **Internal / Cluster / VPN Resolution:** 100% confined to Technitium. Cloudflare requires **zero** configuration.
+- **Optional Public Delegation:** If public internet resolvers ever need to resolve `*.ip.<domain>`, add an `NS` record in Cloudflare:
+  - Record: `NS` | Name: `ip` | Nameserver: `hub.<domain>` (e.g. `hub.agrawal.pro`)
+
+### Configuration Schemas
+1. **Forward Sub-Zone (`ip.<domain>`) APP Record:**
+   - **Type:** `APP`
+   - **Name:** `ip.<domain>`
+   - **App Name:** `Wild IP` (`classPath`: `WildIp.App`)
+   - **Record Data:**
+     ```json
+     {
+       "allowedNetworks": [
+         "10.0.0.0/8",
+         "172.16.0.0/12",
+         "192.168.0.0/16",
+         "80.225.252.237/32",
+         "129.146.39.180/32",
+         "35.212.133.199/32"
+       ]
+     }
+     ```
+2. **Reverse Zones (`10.in-addr.arpa`, `168.192.in-addr.arpa`) APP Record:**
+   - **Type:** `APP`
+   - **Name:** `<zone>`
+   - **App Name:** `Auto PTR` (`classPath`: `AutoPtr.App`)
+   - **Record Data:**
+     ```json
+     {
+       "prefix": "",
+       "suffix": ".ip.<domain>",
+       "ipSeparator": "-"
+     }
+     ```
