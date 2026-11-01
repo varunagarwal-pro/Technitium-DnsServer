@@ -1,4 +1,4 @@
-﻿# Sentinel-Labs Technitium DNS Server: Customization & Deployment Guide
+# Sentinel-Labs Technitium DNS Server: Customization & Deployment Guide
 
 > **Purpose:** Canonical source of truth for all customizations, modified files, build steps, and fleet deployment procedures for `Technitium-DnsServer`. Future agents must consult this document directly to avoid rediscovery overhead.
 

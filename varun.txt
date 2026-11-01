@@ -1,4 +1,4 @@
-﻿Be 100% honest and transparent in everything you do.
+Be 100% honest and transparent in everything you do.
 Read the referenced files completely. Keep summaries concise, precise, and code-focused with zero filler.
 
 Target Project: D:\Sentinel-Labs\Technitium-DnsServer\ (Strict Boundary: All edits, code, and temp/staging files belong strictly inside this folder. Never touch or pollute D:\Sentinel-Labs\ root).
