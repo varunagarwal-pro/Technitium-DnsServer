@@ -458,7 +458,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                     <div id="divDashboard" style="display: none;">
                                         <!-- Enterprise Hero Telemetry Cards -->
                                         <div class="enterprise-hero-grid">
-                                            <div class="hero-stat-card total-queries">
+                                            <a href="#" class="hero-stat-card hero-clickable total-queries" onclick="showQueryLogs(); return false;" title="View query logs">
                                                 <div class="hero-card-icon"><i class="fa fa-tachometer"></i></div>
                                                 <div class="hero-card-body">
                                                     <div class="hero-card-title">Total DNS Queries</div>
@@ -468,9 +468,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         <span class="hero-card-pill"><i class="fa fa-users"></i> <span id="divDashboardStatsTotalClients">0</span>&nbsp;Clients</span>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </a>
 
-                                            <div class="hero-stat-card blocked-queries">
+                                            <a href="#" class="hero-stat-card hero-clickable blocked-queries" onclick="showQueryLogs(null, null, null, null, 'Blocked'); return false;" title="View blocked query logs">
                                                 <div class="hero-card-icon"><i class="fa fa-shield"></i></div>
                                                 <div class="hero-card-body">
                                                     <div class="hero-card-title">Blocked by Filters</div>
@@ -482,7 +482,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         <span class="hero-card-pill"><i class="fa fa-ban"></i> Ad-Shield Filtering Active</span>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            </a>
 
                                             <div class="hero-stat-card errors-card">
                                                 <div class="hero-card-icon"><i class="fa fa-heartbeat"></i></div>
@@ -493,7 +493,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                         <span class="hero-card-badge badge-danger" id="divDashboardStatsTotalErrorsPercentage">0%</span>
                                                     </div>
                                                     <div class="hero-card-footer">
-                                                        <span class="hero-card-pill">ServFail:&nbsp;<b id="divDashboardStatsTotalServerFailure">0</b> &nbsp;&bull;&nbsp; Refused:&nbsp;<b id="divDashboardStatsTotalRefused">0</b> &nbsp;&bull;&nbsp; Dropped:&nbsp;<b id="divDashboardStatsTotalDropped">0</b></span>
+                                                        <span class="hero-card-pill"><a href="#" class="hero-link" onclick="showQueryLogs(null, null, null, 'ServerFailure'); return false;" title="View Server Failure query logs">ServFail:&nbsp;<b id="divDashboardStatsTotalServerFailure">0</b></a> &nbsp;&bull;&nbsp; <a href="#" class="hero-link" onclick="showQueryLogs(null, null, null, 'Refused'); return false;" title="View Refused query logs">Refused:&nbsp;<b id="divDashboardStatsTotalRefused">0</b></a> &nbsp;&bull;&nbsp; Dropped:&nbsp;<b id="divDashboardStatsTotalDropped">0</b></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -503,11 +503,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                 <div class="hero-card-body">
                                                     <div class="hero-card-title">Cache Efficiency</div>
                                                     <div class="hero-card-value">
-                                                        <span id="divDashboardStatsTotalCacheHit">0</span>
+                                                        <a href="#" class="hero-link" onclick="showQueryLogs(null, null, null, null, 'Cached'); return false;" title="View cached query logs"><span id="divDashboardStatsTotalCacheHit">0</span></a>
                                                         <span class="hero-card-badge badge-cache" id="divDashboardStatsTotalCacheHitPercentage">0%</span>
                                                     </div>
                                                     <div class="hero-card-footer">
-                                                        <span class="hero-card-pill">Recursive:&nbsp;<b id="divDashboardStatsTotalRecursions">0</b>&nbsp;<span style="opacity: 0.85;">(<span id="divDashboardStatsTotalRecursionsPercentage">0%</span>)</span> &nbsp;&bull;&nbsp; Auth:&nbsp;<b id="divDashboardStatsTotalAuthHit">0</b></span>
+                                                        <span class="hero-card-pill"><a href="#" class="hero-link" onclick="showQueryLogs(null, null, null, null, 'Recursive'); return false;" title="View recursive query logs">Recursive:&nbsp;<b id="divDashboardStatsTotalRecursions">0</b>&nbsp;<span style="opacity: 0.85;">(<span id="divDashboardStatsTotalRecursionsPercentage">0%</span>)</span></a> &nbsp;&bull;&nbsp; <a href="#" class="hero-link" onclick="showQueryLogs(null, null, null, null, 'Authoritative'); return false;" title="View authoritative query logs">Auth:&nbsp;<b id="divDashboardStatsTotalAuthHit">0</b></a></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -5669,7 +5669,7 @@ MII...
                     <div id="divEditZoneFile">
                         <div class="form-group">
                             <label for="txtEditZoneFileText" class="control-label">Zone File Editor</label>
-                            <textarea id="txtEditZoneFileText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap;"></textarea>
+                            <textarea id="txtEditZoneFileText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap; font-family: monospace; font-size: 12px; "></textarea>
                         </div>
 
                         <div class="form-group">
@@ -5682,7 +5682,7 @@ MII...
                         </div>
 
                         <p><b>Note!</b> The <code>$ORIGIN</code> and <code>$TTL</code> values will be automatically set if not specified.</p>
-                        <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync.</p>
+                        <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync and require a manual resync.</p>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -5757,13 +5757,13 @@ MII...
                     <div id="divImportZoneTextEditor">
                         <div class="form-group">
                             <label for="txtImportZoneText" class="control-label">Text Editor</label>
-                            <textarea id="txtImportZoneText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap;"></textarea>
+                            <textarea id="txtImportZoneText" class="form-control" rows="15" spellcheck="false" style="white-space: nowrap; font-family: monospace; font-size: 12px;"></textarea>
                             <div style="padding-top: 5px;">Enter the records to be imported above in standard zone file format.</div>
                         </div>
                     </div>
 
                     <p><b>Note!</b> The <code>$ORIGIN</code> and <code>$TTL</code> values will be automatically set if not specified.</p>
-                    <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync.</p>
+                    <p><b>Warning!</b> Overwrite SOA serial option when used to set a lower SOA serial value than the current SOA serial will cause secondary zones to fail to sync and require a manual resync.</p>
                 </div>
                 <div class="modal-footer">
                     <button id="btnImportZone" type="submit" class="btn btn-primary" data-loading-text="Importing..." onclick="importZone(); return false;">Import</button>

@@ -450,6 +450,25 @@ body {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
 }
 
+a.hero-stat-card,
+a.hero-stat-card:hover,
+a.hero-stat-card:focus,
+.hero-link,
+.hero-link:hover,
+.hero-link:focus {
+    color: inherit;
+    text-decoration: none;
+}
+
+.hero-clickable,
+.hero-link {
+    cursor: pointer;
+}
+
+.hero-link:hover {
+    text-decoration: underline;
+}
+
 .hero-stat-card.total-queries { border-top: 3px solid #3b82f6; }
 .hero-stat-card.blocked-queries { border-top: 3px solid #f97316; }
 .hero-stat-card.errors-card { border-top: 3px solid #ef4444; }
