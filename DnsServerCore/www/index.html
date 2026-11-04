@@ -191,40 +191,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 <span class="nav-label">Dashboard</span>
                             </a>
                         </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemZones">
-                            <a href="#mainPanelTabPaneZones" onclick="switchAppTab('Zones'); return false;" title="Zones">
-                                <i class="fa fa-globe nav-icon"></i>
-                                <span class="nav-label">Zones</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemDhcp">
-                            <a href="#mainPanelTabPaneDhcp" onclick="switchAppTab('Dhcp'); return false;" title="DHCP">
-                                <i class="fa fa-sitemap nav-icon"></i>
-                                <span class="nav-label">DHCP</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemApps">
-                            <a href="#mainPanelTabPaneApps" onclick="switchAppTab('Apps'); return false;" title="Apps">
-                                <i class="fa fa-cubes nav-icon"></i>
-                                <span class="nav-label">Apps</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemLogs">
-                            <a href="#mainPanelTabPaneLogs" onclick="switchAppTab('Logs'); return false;" title="Logs">
-                                <i class="fa fa-file-text-o nav-icon"></i>
-                                <span class="nav-label">Logs</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemDnsClient">
-                            <a href="#mainPanelTabPaneDnsClient" onclick="switchAppTab('DnsClient'); return false;" title="DNS Client">
-                                <i class="fa fa-terminal nav-icon"></i>
-                                <span class="nav-label">DNS Client</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemCachedZones">
-                            <a href="#mainPanelTabPaneCachedZones" onclick="switchAppTab('CachedZones'); return false;" title="Cache">
-                                <i class="fa fa-bolt nav-icon"></i>
-                                <span class="nav-label">Cache</span>
+                        <li class="sidebar-nav-item" id="sidebarNavItemAdmin">
+                            <a href="#mainPanelTabPaneAdmin" onclick="switchAppTab('Admin'); return false;" title="Administration">
+                                <i class="fa fa-sliders nav-icon"></i>
+                                <span class="nav-label">Administration</span>
                             </a>
                         </li>
                         <li class="sidebar-nav-item" id="sidebarNavItemAllowedZones">
@@ -233,10 +203,40 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 <span class="nav-label">Allowed</span>
                             </a>
                         </li>
+                        <li class="sidebar-nav-item" id="sidebarNavItemApps">
+                            <a href="#mainPanelTabPaneApps" onclick="switchAppTab('Apps'); return false;" title="Apps">
+                                <i class="fa fa-cubes nav-icon"></i>
+                                <span class="nav-label">Apps</span>
+                            </a>
+                        </li>
                         <li class="sidebar-nav-item" id="sidebarNavItemBlockedZones">
                             <a href="#mainPanelTabPaneBlockedZones" onclick="switchAppTab('BlockedZones'); return false;" title="Blocked">
                                 <i class="fa fa-ban nav-icon"></i>
                                 <span class="nav-label">Blocked</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-nav-item" id="sidebarNavItemCachedZones">
+                            <a href="#mainPanelTabPaneCachedZones" onclick="switchAppTab('CachedZones'); return false;" title="Cache">
+                                <i class="fa fa-bolt nav-icon"></i>
+                                <span class="nav-label">Cache</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-nav-item" id="sidebarNavItemDhcp">
+                            <a href="#mainPanelTabPaneDhcp" onclick="switchAppTab('Dhcp'); return false;" title="DHCP">
+                                <i class="fa fa-sitemap nav-icon"></i>
+                                <span class="nav-label">DHCP</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-nav-item" id="sidebarNavItemDnsClient">
+                            <a href="#mainPanelTabPaneDnsClient" onclick="switchAppTab('DnsClient'); return false;" title="DNS Client">
+                                <i class="fa fa-terminal nav-icon"></i>
+                                <span class="nav-label">DNS Client</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-nav-item" id="sidebarNavItemLogs">
+                            <a href="#mainPanelTabPaneLogs" onclick="switchAppTab('Logs'); return false;" title="Logs">
+                                <i class="fa fa-file-text-o nav-icon"></i>
+                                <span class="nav-label">Logs</span>
                             </a>
                         </li>
                         <li class="sidebar-nav-item" id="sidebarNavItemSettings">
@@ -245,10 +245,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 <span class="nav-label">Settings</span>
                             </a>
                         </li>
-                        <li class="sidebar-nav-item" id="sidebarNavItemAdmin">
-                            <a href="#mainPanelTabPaneAdmin" onclick="switchAppTab('Admin'); return false;" title="Administration">
-                                <i class="fa fa-sliders nav-icon"></i>
-                                <span class="nav-label">Administration</span>
+                        <li class="sidebar-nav-item" id="sidebarNavItemZones">
+                            <a href="#mainPanelTabPaneZones" onclick="switchAppTab('Zones'); return false;" title="Zones">
+                                <i class="fa fa-globe nav-icon"></i>
+                                <span class="nav-label">Zones</span>
                             </a>
                         </li>
                         <li class="sidebar-nav-item" id="sidebarNavItemAbout">
@@ -368,16 +368,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         <div>
                             <ul class="nav nav-tabs" role="tablist">
                                 <li id="mainPanelTabListDashboard" role="presentation" class="active"><a href="#mainPanelTabPaneDashboard" aria-controls="mainPanelTabPaneDashboard" role="tab" data-toggle="tab" onclick="refreshDashboard();">Dashboard</a></li>
-                                <li id="mainPanelTabListZones" role="presentation"><a href="#mainPanelTabPaneZones" aria-controls="mainPanelTabPaneZones" role="tab" data-toggle="tab" onclick="refreshZones(true);">Zones</a></li>
-                                <li id="mainPanelTabListCachedZones" role="presentation"><a href="#mainPanelTabPaneCachedZones" aria-controls="mainPanelTabPaneCachedZones" role="tab" data-toggle="tab">Cache</a></li>
-                                <li id="mainPanelTabListAllowedZones" role="presentation"><a href="#mainPanelTabPaneAllowedZones" aria-controls="mainPanelTabPaneAllowedZones" role="tab" data-toggle="tab">Allowed</a></li>
-                                <li id="mainPanelTabListBlockedZones" role="presentation"><a href="#mainPanelTabPaneBlockedZones" aria-controls="mainPanelTabPaneBlockedZones" role="tab" data-toggle="tab">Blocked</a></li>
-                                <li id="mainPanelTabListApps" role="presentation"><a href="#mainPanelTabPaneApps" aria-controls="mainPanelTabPaneApps" role="tab" data-toggle="tab" onclick="refreshApps();">Apps</a></li>
-                                <li id="mainPanelTabListDnsClient" role="presentation"><a href="#mainPanelTabPaneDnsClient" aria-controls="mainPanelTabPaneDnsClient" role="tab" data-toggle="tab">DNS Client</a></li>
-                                <li id="mainPanelTabListSettings" role="presentation"><a href="#mainPanelTabPaneSettings" aria-controls="mainPanelTabPaneSettings" role="tab" data-toggle="tab" onclick="refreshDnsSettings();">Settings</a></li>
-                                <li id="mainPanelTabListDhcp" role="presentation"><a href="#mainPanelTabPaneDhcp" aria-controls="mainPanelTabPaneDhcp" role="tab" data-toggle="tab" onclick="refreshDhcpTab();">DHCP</a></li>
                                 <li id="mainPanelTabListAdmin" role="presentation"><a href="#mainPanelTabPaneAdmin" aria-controls="mainPanelTabPaneAdmin" role="tab" data-toggle="tab" onclick="refreshAdminTab();">Administration</a></li>
+                                <li id="mainPanelTabListAllowedZones" role="presentation"><a href="#mainPanelTabPaneAllowedZones" aria-controls="mainPanelTabPaneAllowedZones" role="tab" data-toggle="tab">Allowed</a></li>
+                                <li id="mainPanelTabListApps" role="presentation"><a href="#mainPanelTabPaneApps" aria-controls="mainPanelTabPaneApps" role="tab" data-toggle="tab" onclick="refreshApps();">Apps</a></li>
+                                <li id="mainPanelTabListBlockedZones" role="presentation"><a href="#mainPanelTabPaneBlockedZones" aria-controls="mainPanelTabPaneBlockedZones" role="tab" data-toggle="tab">Blocked</a></li>
+                                <li id="mainPanelTabListCachedZones" role="presentation"><a href="#mainPanelTabPaneCachedZones" aria-controls="mainPanelTabPaneCachedZones" role="tab" data-toggle="tab">Cache</a></li>
+                                <li id="mainPanelTabListDhcp" role="presentation"><a href="#mainPanelTabPaneDhcp" aria-controls="mainPanelTabPaneDhcp" role="tab" data-toggle="tab" onclick="refreshDhcpTab();">DHCP</a></li>
+                                <li id="mainPanelTabListDnsClient" role="presentation"><a href="#mainPanelTabPaneDnsClient" aria-controls="mainPanelTabPaneDnsClient" role="tab" data-toggle="tab">DNS Client</a></li>
                                 <li id="mainPanelTabListLogs" role="presentation"><a href="#mainPanelTabPaneLogs" aria-controls="mainPanelTabPaneLogs" role="tab" data-toggle="tab" onclick="refreshLogsTab();">Logs</a></li>
+                                <li id="mainPanelTabListSettings" role="presentation"><a href="#mainPanelTabPaneSettings" aria-controls="mainPanelTabPaneSettings" role="tab" data-toggle="tab" onclick="refreshDnsSettings();">Settings</a></li>
+                                <li id="mainPanelTabListZones" role="presentation"><a href="#mainPanelTabPaneZones" aria-controls="mainPanelTabPaneZones" role="tab" data-toggle="tab" onclick="refreshZones(true);">Zones</a></li>
                                 <li id="mainPanelTabListAbout" role="presentation"><a href="#mainPanelTabPaneAbout" aria-controls="mainPanelTabPaneAbout" role="tab" data-toggle="tab">About</a></li>
                             </ul>
 
