@@ -1,0 +1,22 @@
+name: Upstream gate
+
+# Runs on the sync/upstream-* pull requests opened by the Sentinel-Labs fleet engine.
+# The engine never pushes to master; a human merges the PR once this gate is green.
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    if: startsWith(github.head_ref, 'sync/upstream-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Compile
+        run: dotnet build DnsServerApp/DnsServerApp.csproj -c Release
