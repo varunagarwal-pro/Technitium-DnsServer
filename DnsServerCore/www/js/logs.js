@@ -422,7 +422,7 @@ function queryLogs(pageNumber, liveUpdate) {
 
     var start = $("#txtQueryLogStart").val();
     if (start != "")
-        start = moment(start).toISOString();
+        start = displayInputToIso(start);
 
     if (document.getElementById("txtQueryLogEnd").validity.badInput) {
         showAlert("warning", "Missing!", "Please enter correct date and time for 'To' field.");
@@ -432,7 +432,7 @@ function queryLogs(pageNumber, liveUpdate) {
 
     var end = $("#txtQueryLogEnd").val();
     if (end != "")
-        end = moment(end).toISOString();
+        end = displayInputToIso(end);
 
     var clientIpAddress = $("#txtQueryLogClientIpAddress").val();
     var protocol = $("#optQueryLogsProtocol").val();
@@ -516,7 +516,7 @@ function queryLogs(pageNumber, liveUpdate) {
                 }
 
                 tableHtml += "<tr" + (trbgcolor == null ? "" : " style=\"background-color: " + trbgcolor + ";\"") + "><td>" + responseJSON.response.entries[i].rowNumber + "</td><td>" +
-                    moment(responseJSON.response.entries[i].timestamp).local().format("YYYY-MM-DD HH:mm:ss") + "</td><td style=\"word-break: break-all; min-width: 125px;\">" +
+                    formatDisplayTime(responseJSON.response.entries[i].timestamp, "YYYY-MM-DD HH:mm:ss") + "</td><td style=\"word-break: break-all; min-width: 125px;\">" +
                     responseJSON.response.entries[i].clientIpAddress + "</td><td>" +
                     responseJSON.response.entries[i].protocol + "</td><td>" +
                     responseJSON.response.entries[i].responseType + (responseJSON.response.entries[i].responseRtt == null ? "" : "<div style=\"font-size: 12px;\">(" + responseJSON.response.entries[i].responseRtt.toFixed(2) + " ms)</div>") + "</td><td>" +
@@ -679,11 +679,11 @@ function exportQueryLogsCsv(objBtn) {
 
     var start = $("#txtQueryLogStart").val();
     if (start != "")
-        start = moment(start).toISOString();
+        start = displayInputToIso(start);
 
     var end = $("#txtQueryLogEnd").val();
     if (end != "")
-        end = moment(end).toISOString();
+        end = displayInputToIso(end);
 
     var clientIpAddress = $("#txtQueryLogClientIpAddress").val();
     var protocol = $("#optQueryLogsProtocol").val();

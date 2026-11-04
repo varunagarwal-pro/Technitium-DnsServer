@@ -172,8 +172,7 @@ function showPageMain() {
         }
     }
 
-    $(".sidebar-nav-item").removeClass("active");
-    $("#sidebarNavItemDashboard").addClass("active");
+    markActiveNav("Dashboard");
     updateAppBreadcrumbs("Dashboard");
 
     $(".nav-tabs li").removeClass("active");
@@ -3249,7 +3248,8 @@ function refreshDashboard(hideLoader) {
                 case "lastYear": secondsInInterval = 31536000; break;
                 default: secondsInInterval = 86400; break;
             }
-            var qps = (responseJSON.response.stats.totalQueries / secondsInInterval).toFixed(1);
+            var qpsRaw = responseJSON.response.stats.totalQueries / secondsInInterval;
+            var qps = qpsRaw >= 10 ? qpsRaw.toFixed(0) : (qpsRaw >= 1 ? qpsRaw.toFixed(1) : qpsRaw.toFixed(2));
             $("#divDashboardStatsQPS").text("~" + qps + " QPS");
 
             if (responseJSON.response.stats.totalQueries > 0) {
@@ -3273,10 +3273,10 @@ function refreshDashboard(hideLoader) {
 
                 // Dynamic Descending Sort & Render for Response Codes
                 var responseCodesData = [
-                    { label: "No Error", count: responseJSON.response.stats.totalNoError, pct: pctMatrixNoError, barClass: "bar-emerald" },
-                    { label: "NX Domain", count: responseJSON.response.stats.totalNxDomain, pct: pctMatrixNxDomain, barClass: "bar-amber" },
-                    { label: "Server Failure", count: responseJSON.response.stats.totalServerFailure, pct: pctMatrixServFail, barClass: "bar-crimson" },
-                    { label: "Refused", count: responseJSON.response.stats.totalRefused, pct: pctMatrixRefused, barClass: "bar-purple" }
+                    { label: "No Error", count: responseJSON.response.stats.totalNoError, pct: pctMatrixNoError, barClass: "bar-emerald", logRcode: "NoError" },
+                    { label: "NX Domain", count: responseJSON.response.stats.totalNxDomain, pct: pctMatrixNxDomain, barClass: "bar-amber", logRcode: "NxDomain" },
+                    { label: "Server Failure", count: responseJSON.response.stats.totalServerFailure, pct: pctMatrixServFail, barClass: "bar-crimson", logRcode: "ServerFailure" },
+                    { label: "Refused", count: responseJSON.response.stats.totalRefused, pct: pctMatrixRefused, barClass: "bar-purple", logRcode: "Refused" }
                 ];
                 responseCodesData.sort(function (a, b) { return b.count - a.count; });
                 var respHtml = "";
@@ -3285,7 +3285,7 @@ function refreshDashboard(hideLoader) {
                     var isLast = r === responseCodesData.length - 1 ? ' style="margin-bottom: 0;"' : '';
                     respHtml += '<div class="matrix-metric-row clickable-filter-row" data-filter-name="' + itm.label + '" onclick="toggleDashboardFilter(\'Response Code\', \'' + itm.label + '\');"' + isLast + '>';
                     respHtml += '  <div class="matrix-metric-header">';
-                    respHtml += '    <span>' + itm.label + '</span>';
+                    respHtml += '    <span>' + itm.label + matrixQueryLogLink(itm.label, itm.logRcode, null) + '</span>';
                     respHtml += '    <span class="matrix-metric-val">' + itm.count.toLocaleString() + ' (' + itm.pct + '%)</span>';
                     respHtml += '  </div>';
                     respHtml += '  <div class="matrix-bar-track">';
@@ -3303,9 +3303,9 @@ function refreshDashboard(hideLoader) {
 
                 // Dynamic Descending Sort & Render for Resolution Types
                 var resolutionTypesData = [
-                    { label: "Cached", count: responseJSON.response.stats.totalCached, pct: pctMatrixCached, barClass: "bar-emerald" },
-                    { label: "Recursive", count: responseJSON.response.stats.totalRecursive, pct: pctMatrixRecursive, barClass: "bar-blue" },
-                    { label: "Authoritative", count: responseJSON.response.stats.totalAuthoritative, pct: pctMatrixAuth, barClass: "bar-teal" },
+                    { label: "Cached", count: responseJSON.response.stats.totalCached, pct: pctMatrixCached, barClass: "bar-emerald", logType: "Cached" },
+                    { label: "Recursive", count: responseJSON.response.stats.totalRecursive, pct: pctMatrixRecursive, barClass: "bar-blue", logType: "Recursive" },
+                    { label: "Authoritative", count: responseJSON.response.stats.totalAuthoritative, pct: pctMatrixAuth, barClass: "bar-teal", logType: "Authoritative" },
                     { label: "Dropped", count: responseJSON.response.stats.totalDropped, pct: pctMatrixDropped, barClass: "bar-slate" }
                 ];
                 resolutionTypesData.sort(function (a, b) { return b.count - a.count; });
@@ -3315,7 +3315,7 @@ function refreshDashboard(hideLoader) {
                     var isLast = s === resolutionTypesData.length - 1 ? ' style="margin-bottom: 0;"' : '';
                     resolHtml += '<div class="matrix-metric-row clickable-filter-row" data-filter-name="' + itm.label + '" onclick="toggleDashboardFilter(\'Resolution Type\', \'' + itm.label + '\');"' + isLast + '>';
                     resolHtml += '  <div class="matrix-metric-header">';
-                    resolHtml += '    <span>' + itm.label + '</span>';
+                    resolHtml += '    <span>' + itm.label + matrixQueryLogLink(itm.label, null, itm.logType) + '</span>';
                     resolHtml += '    <span class="matrix-metric-val">' + itm.count.toLocaleString() + ' (' + itm.pct + '%)</span>';
                     resolHtml += '  </div>';
                     resolHtml += '  <div class="matrix-bar-track">';
@@ -3395,7 +3395,7 @@ function refreshDashboard(hideLoader) {
 
                 default:
                     for (var i = 0; i < responseJSON.response.mainChartData.labels.length; i++) {
-                        responseJSON.response.mainChartData.labels[i] = moment(responseJSON.response.mainChartData.labels[i]).local().format(responseJSON.response.mainChartData.labelFormat);
+                        responseJSON.response.mainChartData.labels[i] = toDisplayMoment(responseJSON.response.mainChartData.labels[i]).format(responseJSON.response.mainChartData.labelFormat);
                     }
                     break;
             }
@@ -3602,6 +3602,8 @@ function refreshDashboard(hideLoader) {
             // Save response for sub-view chart switching
             window.lastDashboardResponse = responseJSON.response;
             updateChartFilterMenus(responseJSON.response);
+            renderDashboardKpiGrid(responseJSON.response.stats);
+            renderDashboardStatusBar(type);
 
             // Live QPS dynamic delta calculation
             var nowTick = Date.now();
@@ -4287,6 +4289,8 @@ function toggleQuickTheme() {
     if (document.body.classList.contains("dark-mode")) {
         changeTheme("dark-grey");
     } else if (document.body.classList.contains("dark-grey-mode")) {
+        changeTheme("amber");
+    } else if (document.body.classList.contains("amber-mode")) {
         changeTheme("light");
     } else {
         changeTheme("dark");
@@ -4593,8 +4597,7 @@ $(document).on("shown.bs.tab", "#pageMain .nav-tabs a", function (e) {
             }
         }
         if (matchedTab) {
-            $(".sidebar-nav-item").removeClass("active");
-            $("#sidebarNavItem" + matchedTab).addClass("active");
+            markActiveNav(matchedTab);
             updateAppBreadcrumbs(matchedTab);
             updateUrlHashForTab(matchedTab);
             if (matchedTab === "Dashboard") {
@@ -4613,8 +4616,7 @@ function switchAppTab(tabName, updateUrl) {
     if (!meta) return;
 
     // 1. Activate sidebar nav item
-    $(".sidebar-nav-item").removeClass("active");
-    $("#sidebarNavItem" + tabName).addClass("active");
+    markActiveNav(tabName);
 
     // 2. Trigger corresponding legacy tab click
     $("#mainPanelTabList" + meta.legacyTab + " a").tab("show");
@@ -4641,6 +4643,7 @@ function switchAppTab(tabName, updateUrl) {
     // 5. Auto-collapse on small screens
     if ($(window).width() <= 768) {
         $("#appSidebar").removeClass("expanded");
+        $("body").removeClass("sidebar-open");
     }
 }
 
@@ -4657,6 +4660,7 @@ function toggleSidebar() {
     var sidebar = $("#appSidebar");
     if ($(window).width() <= 768) {
         sidebar.toggleClass("expanded");
+        $("body").toggleClass("sidebar-open", sidebar.hasClass("expanded"));
     } else {
         sidebar.toggleClass("collapsed");
         var isCollapsed = sidebar.hasClass("collapsed");
@@ -5152,3 +5156,287 @@ function updateChartTheme(chart) {
         });
     }
 }
+
+// --- Sentinel-Labs: Display Time Zone (Browser / IST / UTC) ---
+// Server timestamps are UTC; this only changes how the web console renders them.
+var DISPLAY_TZ_OPTIONS = {
+    local: { offset: null, name: "Browser local time" },
+    ist: { offset: 330, name: "India Standard Time (UTC+05:30)" },
+    utc: { offset: 0, name: "Coordinated Universal Time" }
+};
+
+function getDisplayTimezone() {
+    var tz = localStorage.getItem("display_timezone");
+    return DISPLAY_TZ_OPTIONS.hasOwnProperty(tz) ? tz : "local";
+}
+
+function getDisplayTzLabel() {
+    switch (getDisplayTimezone()) {
+        case "ist": return "IST";
+        case "utc": return "UTC";
+        default: return moment().format("[UTC]Z");
+    }
+}
+
+function toDisplayMoment(ts) {
+    var offset = DISPLAY_TZ_OPTIONS[getDisplayTimezone()].offset;
+    var m = moment(ts);
+    return (offset === null) ? m.local() : m.utcOffset(offset);
+}
+
+function formatDisplayTime(ts, fmt) {
+    return toDisplayMoment(ts).format(fmt || "YYYY-MM-DD HH:mm:ss");
+}
+
+// Interprets a datetime-local input value in the display time zone and returns ISO UTC.
+function displayInputToIso(val) {
+    if ((val == null) || (val === ""))
+        return "";
+
+    var offset = DISPLAY_TZ_OPTIONS[getDisplayTimezone()].offset;
+    if (offset === null)
+        return moment(val).toISOString();
+
+    return moment.utc(val).subtract(offset, "minutes").toISOString();
+}
+
+function syncDisplayTimezoneControls() {
+    var tz = getDisplayTimezone();
+    $("#rdDisplayTz" + (tz === "ist" ? "Ist" : (tz === "utc" ? "Utc" : "Local"))).prop("checked", true);
+    $("#optQueryLogsDisplayTz").val(tz);
+    $("#lblQueryLogsTzSuffix").text("(" + getDisplayTzLabel() + ")");
+    $(".display-tz-hint").text(getDisplayTzLabel());
+}
+
+function setDisplayTimezone(tz) {
+    if (!DISPLAY_TZ_OPTIONS.hasOwnProperty(tz))
+        tz = "local";
+
+    localStorage.setItem("display_timezone", tz);
+    syncDisplayTimezoneControls();
+    convertLogViewerTimestamps();
+
+    if ($("#mainPanelTabPaneDashboard").hasClass("active") && (typeof refreshDashboard === "function"))
+        refreshDashboard(true);
+
+    if ($("#logsTabPaneQueryLogs").hasClass("active") && $("#divQueryLogsTable").is(":visible") && (typeof queryLogs === "function"))
+        queryLogs();
+}
+
+// View Logs text files carry "[yyyy-MM-dd HH:mm:ss UTC]" prefixes written by the server.
+function convertLogViewerTimestamps() {
+    var pre = document.getElementById("preLogViewerBody");
+    if (pre == null)
+        return;
+
+    var current = pre.textContent;
+    if (current !== pre._tzOutput)
+        pre._tzRaw = current;
+
+    if (!pre._tzRaw)
+        return;
+
+    var label = getDisplayTzLabel();
+    var output = (getDisplayTimezone() === "utc") ? pre._tzRaw : pre._tzRaw.replace(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC\]/gm, function (match, utcText) {
+        return "[" + formatDisplayTime(moment.utc(utcText, "YYYY-MM-DD HH:mm:ss")) + " " + label + "]";
+    });
+
+    if (output !== current) {
+        pre._tzOutput = output;
+        pre.textContent = output;
+    }
+    else {
+        pre._tzOutput = current;
+    }
+}
+
+// --- Sentinel-Labs: App shell navigation sync ---
+function markActiveNav(tabName) {
+    $(".sidebar-nav-item").removeClass("active").children("a").removeAttr("aria-current");
+    $("#sidebarNavItem" + tabName).addClass("active").children("a").attr("aria-current", "page");
+}
+
+function syncAppShellToTab(tabName) {
+    if (!APP_TAB_METADATA[tabName])
+        return;
+
+    markActiveNav(tabName);
+    updateAppBreadcrumbs(tabName);
+    updateUrlHashForTab(tabName);
+
+    isDashboardTabActive = (tabName === "Dashboard");
+    if (isDashboardTabActive)
+        startAutoRefreshTimer();
+    else
+        stopAutoRefreshTimer();
+
+    if ($(window).width() <= 768) {
+        $("#appSidebar").removeClass("expanded");
+        $("body").removeClass("sidebar-open");
+    }
+}
+
+// --- Sentinel-Labs: Rich dashboard (KPI grid & server status bar) ---
+function matrixQueryLogLink(label, rcode, responseType) {
+    if ((rcode == null) && (responseType == null))
+        return "";
+
+    var args = "null, null, null, " + (rcode == null ? "null" : "'" + rcode + "'") + ", " + (responseType == null ? "null" : "'" + responseType + "'");
+    return ' <a href="#" class="matrix-log-link" title="View ' + label + ' query logs" aria-label="View ' + label + ' query logs" onclick="event.stopPropagation(); showQueryLogs(' + args + '); return false;"><i class="fa fa-external-link"></i></a>';
+}
+
+function renderDashboardKpiGrid(stats) {
+    var grid = $("#divDashboardKpiGrid");
+    if ((grid.length === 0) || (stats == null))
+        return;
+
+    var total = stats.totalQueries || 0;
+    var tiles = [
+        { label: "No Error", value: stats.totalNoError, cls: "kpi-emerald", icon: "fa-check-circle", action: "showQueryLogs(null, null, null, 'NoError')" },
+        { label: "NX Domain", value: stats.totalNxDomain, cls: "kpi-amber", icon: "fa-question-circle", action: "showQueryLogs(null, null, null, 'NxDomain')" },
+        { label: "Server Failure", value: stats.totalServerFailure, cls: "kpi-crimson", icon: "fa-exclamation-triangle", action: "showQueryLogs(null, null, null, 'ServerFailure')" },
+        { label: "Refused", value: stats.totalRefused, cls: "kpi-purple", icon: "fa-ban", action: "showQueryLogs(null, null, null, 'Refused')" },
+        { label: "Dropped", value: stats.totalDropped, cls: "kpi-slate", icon: "fa-filter", action: null },
+        { label: "Authoritative", value: stats.totalAuthoritative, cls: "kpi-teal", icon: "fa-certificate", action: "showQueryLogs(null, null, null, null, 'Authoritative')" },
+        { label: "Recursive", value: stats.totalRecursive, cls: "kpi-blue", icon: "fa-sitemap", action: "showQueryLogs(null, null, null, null, 'Recursive')" },
+        { label: "Cached", value: stats.totalCached, cls: "kpi-emerald", icon: "fa-bolt", action: "showQueryLogs(null, null, null, null, 'Cached')" },
+        { label: "Blocked", value: stats.totalBlocked, cls: "kpi-orange", icon: "fa-shield", action: "showQueryLogs(null, null, null, null, 'Blocked')" },
+        { label: "Clients", value: stats.totalClients, cls: "kpi-sky", icon: "fa-users", action: "showTopStats('TopClients', 1000)", noPct: true }
+    ];
+
+    var html = "";
+    for (var i = 0; i < tiles.length; i++) {
+        var t = tiles[i];
+        var value = t.value || 0;
+        var pct = (!t.noPct && total > 0) ? (value * 100 / total) : null;
+        var tag = t.action ? "a" : "div";
+        var attrs = t.action ? ' href="#" onclick="' + t.action + '; return false;" title="' + (t.noPct ? "View top clients" : "View " + t.label + " query logs") + '"' : ' title="' + t.label + ' (not stored in query logs)"';
+
+        html += "<" + tag + ' class="dash-kpi-tile ' + t.cls + '"' + attrs + ">";
+        html += '<div class="dash-kpi-head"><i class="fa ' + t.icon + '" aria-hidden="true"></i> ' + t.label + "</div>";
+        html += '<div class="dash-kpi-value">' + value.toLocaleString() + "</div>";
+        html += '<div class="dash-kpi-foot">' + (pct === null ? (t.noPct ? "unique clients" : "&nbsp;") : pct.toFixed(pct > 0 && pct < 1 ? 2 : 1) + "% of queries") + "</div>";
+        html += '<div class="dash-kpi-bar"><span style="width: ' + (pct === null ? 0 : Math.min(100, pct)).toFixed(1) + '%;"></span></div>';
+        html += "</" + tag + ">";
+    }
+
+    grid.html(html);
+}
+
+var dashboardBlockingState = { fetchedAt: 0, loading: false, enabled: null, till: null };
+
+function fetchDashboardBlockingState() {
+    if (dashboardBlockingState.loading || (sessionData == null) || (sessionData.info == null))
+        return;
+
+    var perms = sessionData.info.permissions;
+    if ((perms == null) || (perms.Settings == null) || !perms.Settings.canView)
+        return;
+
+    dashboardBlockingState.loading = true;
+
+    // Silent background call: HTTPRequest() would raise an alert on failure.
+    $.ajax({
+        type: "GET",
+        url: "api/settings/get",
+        headers: { "Authorization": "Bearer " + sessionData.token },
+        dataType: "json",
+        cache: false,
+        success: function (response) {
+            dashboardBlockingState.loading = false;
+            dashboardBlockingState.fetchedAt = Date.now();
+
+            if ((response == null) || (response.status !== "ok"))
+                return;
+
+            dashboardBlockingState.enabled = response.response.enableBlocking;
+            dashboardBlockingState.till = response.response.temporaryDisableBlockingTill || null;
+            renderDashboardStatusBar($("input[name=rdStatType]:checked").val());
+        },
+        error: function () {
+            dashboardBlockingState.loading = false;
+            dashboardBlockingState.fetchedAt = Date.now();
+        }
+    });
+}
+
+function dashboardBlockingAction(action) {
+    switch (action) {
+        case "pause":
+            temporaryDisableBlockingForMenu(5);
+            break;
+
+        case "enable":
+            enableBlocking();
+            break;
+    }
+
+    dashboardBlockingState.fetchedAt = 0;
+    setTimeout(fetchDashboardBlockingState, 1500);
+}
+
+function renderDashboardStatusBar(rangeType) {
+    var bar = $("#divDashboardStatusBar");
+    if (bar.length === 0)
+        return;
+
+    var info = ((sessionData != null) && (sessionData.info != null)) ? sessionData.info : {};
+    var rangeLabels = { lastHour: "Last hour", lastDay: "Last 24 hours", lastWeek: "Last 7 days", lastMonth: "Last 30 days", lastYear: "Last 12 months", custom: "Custom range" };
+    var canModify = (info.permissions != null) && (info.permissions.Settings != null) && info.permissions.Settings.canModify;
+    var html = "";
+
+    var state = dashboardBlockingState;
+    if (state.enabled === true) {
+        html += '<span class="dash-status-pill status-ok"><span class="dash-status-dot"></span> Blocking active';
+        if (canModify)
+            html += ' <button type="button" class="dash-status-action" onclick="dashboardBlockingAction(\'pause\');" title="Temporarily disable blocking for 5 minutes">Pause 5m</button>';
+        html += "</span>";
+    }
+    else if (state.enabled === false) {
+        var tillText = state.till ? " until " + formatDisplayTime(state.till, "HH:mm") + " " + getDisplayTzLabel() : "";
+        html += '<span class="dash-status-pill status-warn"><span class="dash-status-dot"></span> Blocking ' + (state.till ? "paused" + tillText : "disabled");
+        if (canModify)
+            html += ' <button type="button" class="dash-status-action" onclick="dashboardBlockingAction(\'enable\');" title="Enable blocking now">Enable</button>';
+        html += "</span>";
+    }
+
+    if (info.dnsServerDomain)
+        html += '<span class="dash-status-pill"><i class="fa fa-server" aria-hidden="true"></i> ' + htmlEncode(info.dnsServerDomain) + "</span>";
+
+    if (info.version)
+        html += '<span class="dash-status-pill"><i class="fa fa-tag" aria-hidden="true"></i> v' + htmlEncode(info.version) + "</span>";
+
+    if (info.uptimestamp)
+        html += '<span class="dash-status-pill" title="Server started ' + formatDisplayTime(info.uptimestamp) + " " + getDisplayTzLabel() + '"><i class="fa fa-clock-o" aria-hidden="true"></i> Up ' + moment(info.uptimestamp).fromNow(true) + "</span>";
+
+    html += '<span class="dash-status-pill"><i class="fa fa-calendar" aria-hidden="true"></i> ' + (rangeLabels[rangeType] || "Custom range") + "</span>";
+    html += '<a href="#" class="dash-status-pill dash-status-link" onclick="showChangeThemeModal(); return false;" title="Change display time zone"><i class="fa fa-refresh" aria-hidden="true"></i> Updated ' + formatDisplayTime(new Date(), "HH:mm:ss") + " " + getDisplayTzLabel() + "</a>";
+
+    bar.html(html);
+
+    if ((Date.now() - state.fetchedAt) > 60000)
+        fetchDashboardBlockingState();
+}
+
+$(function () {
+    syncDisplayTimezoneControls();
+
+    // logs.js loads after main.js, so wrap showQueryLogs once all scripts are ready.
+    if (typeof showQueryLogs === "function" && !showQueryLogs._appShellSynced) {
+        var upstreamShowQueryLogs = showQueryLogs;
+        showQueryLogs = function () {
+            upstreamShowQueryLogs.apply(this, arguments);
+            syncAppShellToTab("Logs");
+        };
+        showQueryLogs._appShellSynced = true;
+    }
+
+    var pre = document.getElementById("preLogViewerBody");
+    if ((pre != null) && window.MutationObserver)
+        new MutationObserver(convertLogViewerTimestamps).observe(pre, { childList: true, characterData: true, subtree: true });
+
+    $(document).on("keydown", function (e) {
+        if ((e.key === "Escape") && $("body").hasClass("sidebar-open"))
+            toggleSidebar();
+    });
+});

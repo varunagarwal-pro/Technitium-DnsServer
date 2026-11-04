@@ -103,7 +103,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     <div class="login-layout-pill" onclick="toggleLayout();" title="Click to Cycle Layout (Modern / Classic)">
                         <i class="fa fa-columns"></i> <span id="lblLoginLayoutPill">Modern</span>
                     </div>
-                    <div class="login-theme-pill" onclick="toggleQuickTheme();" title="Click to Cycle Theme (Dark Blue, Dark Grey, Light)">
+                    <div class="login-theme-pill" onclick="toggleQuickTheme();" title="Click to Cycle Theme (Dark Blue, Dark Grey, Amber, Light)">
                         <i class="fa fa-paint-brush"></i> <span id="lblLoginThemePill">Theme</span>
                     </div>
                 </div>
@@ -297,6 +297,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             </div>
         </div>
 
+        <!-- Sentinel-Labs: mobile off-canvas sidebar backdrop -->
+        <div id="appSidebarBackdrop" onclick="toggleSidebar();" aria-hidden="true"></div>
+
         <!-- Main Viewport -->
         <div id="appMainViewport">
             <!-- Top Action & Breadcrumb Bar -->
@@ -324,7 +327,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                         <i class="fa fa-columns"></i>
                         <span id="lblQuickLayoutText">Modern</span>
                     </div>
-                    <div id="btnQuickThemeToggle" class="topbar-btn theme-toggle" title="Click to Cycle Theme (Dark Blue, Dark Grey, Light)" onclick="toggleQuickTheme();">
+                    <div id="btnQuickThemeToggle" class="topbar-btn theme-toggle" title="Click to Cycle Theme (Dark Blue, Dark Grey, Amber, Light)" onclick="toggleQuickTheme();">
                         <i id="iconQuickTheme" class="fa fa-paint-brush"></i>
                         <span id="lblQuickThemeText">Theme</span>
                     </div>
@@ -447,7 +450,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                     <li id="itemAutoRefreshOffLegacy"><a href="#" onclick="setAutoRefreshInterval('off'); return false;"><b>Manual (Off)</b> &mdash; Pause</a></li>
                                                 </ul>
                                             </div>
-                                            <select id="optDashboardClusterNode" class="form-control cluster-node-dropdown" style="margin-left: 0px;" onchange="refreshDashboard();"></select>
+                                            <select id="optDashboardClusterNode" class="form-control cluster-node-dropdown" style="margin-left: 0px;" onchange="refreshDashboard();" aria-label="Cluster node" title="Cluster node"></select>
                                         </div>
 
                                         <div class="clearfix"></div>
@@ -456,6 +459,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                     <div id="divDashboardLoader" style="margin-top: 10px; height: 400px;"></div>
 
                                     <div id="divDashboard" style="display: none;">
+                                        <!-- Sentinel-Labs: server status bar (blocking state, version, uptime, range, last update) -->
+                                        <div id="divDashboardStatusBar" class="dash-status-bar" role="status" aria-live="polite"></div>
+
                                         <!-- Enterprise Hero Telemetry Cards -->
                                         <div class="enterprise-hero-grid">
                                             <a href="#" class="hero-stat-card hero-clickable total-queries" onclick="showQueryLogs(); return false;" title="View query logs">
@@ -512,6 +518,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- Sentinel-Labs: per-category KPI tiles (click to open matching query logs) -->
+                                        <div id="divDashboardKpiGrid" class="dash-kpi-grid"></div>
 
                                         <!-- Hidden DOM sinks to maintain 100% backward compatibility with legacy scripts -->
                                         <div style="display: none;">
@@ -875,7 +884,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                         </div>
 
                                         <!-- Modern Distribution Analytics (Row 3: 3 Columns) -->
-                                        <div class="row" style="margin-top: 15px;">
+                                        <div class="row donut-row" style="margin-top: 15px;">
                                             <div class="col-md-4" style="padding-right: 6px;">
                                                 <div class="panel panel-default glass-panel modern-donut-card">
                                                     <div class="panel-heading glass-heading modern-donut-heading">
@@ -4003,6 +4012,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                 </div>
 
                                                 <div class="form-group">
+                                                    <label for="optQueryLogsDisplayTz">Time Zone</label>
+                                                    <select id="optQueryLogsDisplayTz" class="form-control" onchange="setDisplayTimezone(this.value);" title="Time zone used for the Timestamp column and the From/To filters">
+                                                        <option value="local">Browser</option>
+                                                        <option value="ist">IST (UTC+05:30)</option>
+                                                        <option value="utc">UTC</option>
+                                                    </select>
+                                                </div>
+
+                                                <div class="form-group">
                                                     <label for="txtQueryLogClientIpAddress">Client IP Address</label>
                                                     <input id="txtQueryLogClientIpAddress" type="text" class="form-control" style="min-width: 170px;" />
                                                 </div>
@@ -4111,7 +4129,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                                     <thead>
                                                         <tr>
                                                             <th>#</th>
-                                                            <th style="width: 95px;">Timestamp</th>
+                                                            <th style="width: 95px;">Timestamp <span id="lblQueryLogsTzSuffix" class="tz-suffix"></span></th>
                                                             <th>Client IP Address</th>
                                                             <th>Protocol</th>
                                                             <th>Response Type</th>
@@ -4569,9 +4587,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                                 </div>
                             </div>
                         </div>
+                        <div class="form-group" style="margin-top: 15px; border-top: 1px solid rgba(127,127,127,0.2); padding-top: 15px;">
+                            <label class="col-sm-4 control-label">Time Zone</label>
+                            <div class="col-sm-8">
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="rdDisplayTz" id="rdDisplayTzLocal" onclick="setDisplayTimezone('local');">
+                                        <b>Browser Local</b> (Use this device's time zone - Default)
+                                    </label>
+                                </div>
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="rdDisplayTz" id="rdDisplayTzIst" onclick="setDisplayTimezone('ist');">
+                                        <b>IST</b> (India Standard Time, UTC+05:30)
+                                    </label>
+                                </div>
+                                <div class="radio">
+                                    <label>
+                                        <input type="radio" name="rdDisplayTz" id="rdDisplayTzUtc" onclick="setDisplayTimezone('utc');">
+                                        <b>UTC</b> (Same as server log files)
+                                    </label>
+                                </div>
+                                <span class="help-block" style="font-size: 12px; margin-bottom: 0;">Applies to Query Logs, View Logs, dashboard charts and the status bar. Server data is unchanged.</span>
+                            </div>
+                        </div>
                         <div class="form-group" style="margin-top: 15px; border-top: 1px solid rgba(127,127,127,0.2); padding-top: 10px;">
                             <div class="col-sm-offset-4 col-sm-8">
-                                <span class="help-block" style="font-size: 12px; margin-bottom: 0;">Selected theme is automatically saved as your persistent default across browser reloads and sessions.</span>
+                                <span class="help-block" style="font-size: 12px; margin-bottom: 0;">Selected theme, layout and time zone are automatically saved as your persistent default across browser reloads and sessions.</span>
                             </div>
                         </div>
                     </div>
