@@ -221,6 +221,8 @@ namespace DnsServerCore.Dns
         Timer _tlsCertificateUpdateTimer;
         const int TLS_CERTIFICATE_UPDATE_TIMER_INITIAL_INTERVAL = 60000;
         const int TLS_CERTIFICATE_UPDATE_TIMER_INTERVAL = 60000;
+        const int TLS_HANDSHAKE_FAILURE_LOG_INTERVAL_SECONDS = 10;
+        long _lastTlsHandshakeFailureLogTimestamp;
 
         DateTime _dnsTlsCertificateLastModifiedOn;
         SslServerAuthenticationOptions _dotSslServerAuthenticationOptions;
@@ -2161,6 +2163,8 @@ namespace DnsServerCore.Dns
         private async Task ProcessConnectionAsync(Socket socket, DnsTransportProtocol protocol)
         {
             IPEndPoint remoteEP = null;
+            string serverName = null;
+            bool tlsHandshakeCompleted = false;
 
             try
             {
@@ -2174,7 +2178,6 @@ namespace DnsServerCore.Dns
 
                     case DnsTransportProtocol.Tls:
                         SslStream tlsStream = new SslStream(new NetworkStream(socket));
-                        string serverName = null;
 
                         await TechnitiumLibrary.TaskExtensions.TimeoutAsync(delegate (CancellationToken cancellationToken1)
                         {
@@ -2184,6 +2187,7 @@ namespace DnsServerCore.Dns
                                 return ValueTask.FromResult(_dotSslServerAuthenticationOptions);
                             }, null, cancellationToken1);
                         }, _tcpReceiveTimeout);
+                        tlsHandshakeCompleted = true;
 
                         NameServerAddress dnsEP;
 
@@ -2217,17 +2221,20 @@ namespace DnsServerCore.Dns
                         throw new InvalidOperationException();
                 }
             }
-            catch (AuthenticationException)
+            catch (AuthenticationException ex)
             {
-                //ignore TLS auth exception
+                if ((protocol == DnsTransportProtocol.Tls) && !tlsHandshakeCompleted)
+                    LogTlsHandshakeFailure(remoteEP, serverName, "TLS authentication failed", ex);
             }
-            catch (TimeoutException)
+            catch (TimeoutException ex)
             {
-                //ignore timeout exception on TLS auth
+                if ((protocol == DnsTransportProtocol.Tls) && !tlsHandshakeCompleted)
+                    LogTlsHandshakeFailure(remoteEP, serverName, "TLS handshake timed out", ex);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                //ignore IO exceptions
+                if ((protocol == DnsTransportProtocol.Tls) && !tlsHandshakeCompleted)
+                    LogTlsHandshakeFailure(remoteEP, serverName, "TLS handshake I/O failure", ex);
             }
             catch (Exception ex)
             {
@@ -2237,6 +2244,23 @@ namespace DnsServerCore.Dns
             {
                 socket.Dispose();
             }
+        }
+
+        private void LogTlsHandshakeFailure(IPEndPoint remoteEP, string serverName, string reason, Exception exception)
+        {
+            long now = Environment.TickCount64;
+            long lastLogTime = Volatile.Read(ref _lastTlsHandshakeFailureLogTimestamp);
+            long minimumIntervalMilliseconds = TLS_HANDSHAKE_FAILURE_LOG_INTERVAL_SECONDS * 1000L;
+
+            if ((lastLogTime != 0) && (now - lastLogTime < minimumIntervalMilliseconds))
+                return;
+
+            if (Interlocked.CompareExchange(ref _lastTlsHandshakeFailureLogTimestamp, now, lastLogTime) != lastLogTime)
+                return;
+
+            string clientIp = remoteEP?.Address.ToString() ?? "unknown";
+            string sni = string.IsNullOrEmpty(serverName) ? "none" : serverName;
+            _log.Write(remoteEP, DnsTransportProtocol.Tls, "DNS-over-TLS handshake failed (client IP: " + clientIp + "; SNI: " + sni + "; reason: " + reason + ").", exception);
         }
 
         private async Task ReadStreamRequestAsync(Stream stream, IPEndPoint remoteEP, NameServerAddress dnsEP, DnsTransportProtocol protocol)
@@ -2297,8 +2321,8 @@ namespace DnsServerCore.Dns
 
                     if (HasQpmLimitExceeded(remoteEP.Address, DnsTransportProtocol.Tcp))
                     {
-                        _statsManager.QueueUpdate(null, remoteEP, protocol, null, true);
-                        break;
+                        await ProcessStreamRequestAsync(stream, writeBuffer, writeSemaphore, remoteEP, request, protocol, true);
+                        continue;
                     }
 
                     //process request async
@@ -2319,16 +2343,20 @@ namespace DnsServerCore.Dns
             }
         }
 
-        private async Task ProcessStreamRequestAsync(Stream stream, MemoryStream writeBuffer, SemaphoreSlim writeSemaphore, IPEndPoint remoteEP, DnsDatagram request, DnsTransportProtocol protocol)
+        private async Task ProcessStreamRequestAsync(Stream stream, MemoryStream writeBuffer, SemaphoreSlim writeSemaphore, IPEndPoint remoteEP, DnsDatagram request, DnsTransportProtocol protocol, bool isRateLimited = false)
         {
+            bool statsUpdated = false;
             try
             {
-                DnsDatagram response = await ProcessRequestAsync(request, remoteEP, protocol, IsRecursionAllowed(remoteEP.Address));
+                DnsDatagram response = isRateLimited
+                    ? CreateRateLimitedResponse(request, remoteEP, protocol)
+                    : await ProcessRequestAsync(request, remoteEP, protocol, IsRecursionAllowed(remoteEP.Address));
                 if (response is null)
                 {
                     await stream.DisposeAsync();
 
                     _statsManager.QueueUpdate(null, remoteEP, protocol, null, false);
+                    statsUpdated = true;
                     return; //drop request
                 }
 
@@ -2349,7 +2377,8 @@ namespace DnsServerCore.Dns
                 }, _tcpSendTimeout);
 
                 _queryLog?.Write(remoteEP, protocol, request, response);
-                _statsManager.QueueUpdate(request, remoteEP, protocol, response, false);
+                _statsManager.QueueUpdate(request, remoteEP, protocol, response, isRateLimited);
+                statsUpdated = true;
             }
             catch (ObjectDisposedException)
             {
@@ -2366,6 +2395,60 @@ namespace DnsServerCore.Dns
 
                 _log.Write(remoteEP, protocol, ex);
             }
+            finally
+            {
+                if (isRateLimited && !statsUpdated)
+                    _statsManager.QueueUpdate(null, remoteEP, protocol, null, true);
+            }
+        }
+
+        private DnsDatagram CreateRateLimitedResponse(DnsDatagram request, IPEndPoint remoteEP, DnsTransportProtocol protocol)
+        {
+            bool isRecursionAllowed = IsRecursionAllowed(remoteEP.Address);
+            if (!request.IsSigned)
+                return CreateServerFailureResponse(request, isRecursionAllowed);
+
+            if (!TryVerifySignedRequest(request, remoteEP, protocol, out DnsDatagram unsignedRequest, out DnsDatagram errorResponse))
+                return errorResponse;
+
+            return CreateServerFailureResponse(unsignedRequest, isRecursionAllowed).SignResponse(request, _tsigKeys);
+        }
+
+        private bool TryVerifySignedRequest(DnsDatagram request, IPEndPoint remoteEP, DnsTransportProtocol protocol, out DnsDatagram unsignedRequest, out DnsDatagram errorResponse)
+        {
+            if (request.VerifySignedRequest(_tsigKeys, out unsignedRequest, out errorResponse))
+                return true;
+
+            _log.Write(remoteEP, protocol, "DNS Server received a request that failed TSIG signature verification (RCODE: " + errorResponse.RCODE + "; TSIG Error: " + errorResponse.TsigError + ")");
+            errorResponse.Tag = DnsServerResponseType.Authoritative;
+            return false;
+        }
+
+        private DnsDatagram CreateServerFailureResponse(DnsDatagram request, bool isRecursionAllowed)
+        {
+            return new DnsDatagram(
+                request.Identifier,
+                true,
+                request.OPCODE,
+                false,
+                false,
+                request.RecursionDesired,
+                isRecursionAllowed,
+                false,
+                request.CheckingDisabled,
+                DnsResponseCode.ServerFailure,
+                request.Question,
+                null,
+                null,
+                null,
+                request.EDNS is null ? ushort.MinValue : _udpPayloadSize,
+                _dnssecValidation && request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None)
+            { Tag = DnsServerResponseType.Authoritative };
+        }
+
+        private static bool IsStreamProtocol(DnsTransportProtocol protocol)
+        {
+            return protocol is DnsTransportProtocol.Tcp or DnsTransportProtocol.Tls or DnsTransportProtocol.TcpProxy;
         }
 
         private async Task AcceptQuicConnectionAsync(QuicListener quicListener)
@@ -2807,14 +2890,10 @@ namespace DnsServerCore.Dns
 
             if (request.IsSigned)
             {
-                if (!request.VerifySignedRequest(_tsigKeys, out DnsDatagram unsignedRequest, out DnsDatagram errorResponse))
-                {
-                    _log.Write(remoteEP, protocol, "DNS Server received a request that failed TSIG signature verification (RCODE: " + errorResponse.RCODE + "; TSIG Error: " + errorResponse.TsigError + ")");
-
-                    errorResponse.Tag = DnsServerResponseType.Authoritative;
+                if (!TryVerifySignedRequest(request, remoteEP, protocol, out DnsDatagram unsignedRequest, out DnsDatagram errorResponse))
                     return errorResponse;
-                }
 
+                DnsRequestContext.Associate(unsignedRequest, request);
                 DnsDatagram unsignedResponse = await ProcessQueryAsync(unsignedRequest, remoteEP, protocol, isRecursionAllowed, false, _clientTimeout, request.TsigKeyName);
                 if (unsignedResponse is null)
                     return null;
@@ -2947,7 +3026,7 @@ namespace DnsServerCore.Dns
                         if ((question.Type == DnsResourceRecordType.ANY) && (protocol == DnsTransportProtocol.Udp)) //force TCP for ANY request
                             return new DnsDatagram(request.Identifier, true, DnsOpcode.StandardQuery, false, true, request.RecursionDesired, isRecursionAllowed, false, request.CheckingDisabled, DnsResponseCode.NoError, request.Question, null, null, null, request.EDNS is null ? ushort.MinValue : _udpPayloadSize, _dnssecValidation && request.DnssecOk ? EDnsHeaderFlags.DNSSEC_OK : EDnsHeaderFlags.None) { Tag = DnsServerResponseType.Authoritative };
 
-                        return await ProcessRecursiveQueryAsync(request, remoteEP, protocol, null, _dnssecValidation, skipDnsAppAuthoritativeRequestHandlers, clientTimeout);
+                        return await ProcessRecursiveQueryAsync(request, remoteEP, protocol, isRecursionAllowed, null, _dnssecValidation, skipDnsAppAuthoritativeRequestHandlers, clientTimeout);
                     }
                     catch (InvalidDomainNameException)
                     {
@@ -3877,14 +3956,14 @@ namespace DnsServerCore.Dns
                                 if (request.RecursionDesired && isRecursionAllowed)
                                 {
                                     //do forced recursive resolution (with blocking support) using empty conditional forwarders; name servers will be provided via ResolverDnsCache
-                                    return await ProcessRecursiveQueryAsync(request, remoteEP, protocol, [], _dnssecValidation, skipDnsAppAuthoritativeRequestHandlers, _clientTimeout);
+                                    return await ProcessRecursiveQueryAsync(request, remoteEP, protocol, isRecursionAllowed, [], _dnssecValidation, skipDnsAppAuthoritativeRequestHandlers, _clientTimeout);
                                 }
 
                                 break;
 
                             case DnsResourceRecordType.FWD:
                                 //do conditional forwarding (with blocking support)
-                                response = await ProcessRecursiveQueryAsync(request, remoteEP, protocol, response.Authority, _dnssecValidation, skipDnsAppAuthoritativeRequestHandlers, _clientTimeout);
+                                response = await ProcessRecursiveQueryAsync(request, remoteEP, protocol, isRecursionAllowed, response.Authority, _dnssecValidation, skipDnsAppAuthoritativeRequestHandlers, _clientTimeout);
 
                                 if (_dnssecValidation && (response.EDNS is not null) && firstAuthority.RDATA is DnsForwarderRecordData fwd && !fwd.DnssecValidation)
                                 {
@@ -4775,7 +4854,7 @@ namespace DnsServerCore.Dns
             return null;
         }
 
-        private async Task<DnsDatagram> ProcessRecursiveQueryAsync(DnsDatagram request, IPEndPoint remoteEP, DnsTransportProtocol protocol, IReadOnlyList<DnsResourceRecord> conditionalForwarders, bool dnssecValidation, bool skipDnsAppAuthoritativeRequestHandlers, int clientTimeout)
+        private async Task<DnsDatagram> ProcessRecursiveQueryAsync(DnsDatagram request, IPEndPoint remoteEP, DnsTransportProtocol protocol, bool isRecursionAllowed, IReadOnlyList<DnsResourceRecord> conditionalForwarders, bool dnssecValidation, bool skipDnsAppAuthoritativeRequestHandlers, int clientTimeout)
         {
             bool isAllowed = await IsAllowedAsync(request, remoteEP, protocol);
             if (!isAllowed)
@@ -4789,7 +4868,7 @@ namespace DnsServerCore.Dns
 
             DnsDatagram response = await RecursiveResolveAsync(request, remoteEP, conditionalForwarders, dnssecValidation, false, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
             if (response is null)
-                return null; //drop request
+                return IsStreamProtocol(protocol) ? CreateServerFailureResponse(request, isRecursionAllowed) : null; //drop request
 
             if (response.Answer.Count > 0)
             {
@@ -4800,7 +4879,7 @@ namespace DnsServerCore.Dns
                 {
                     response = await ProcessCNAMEAsync(request, response, remoteEP, protocol, true, skipDnsAppAuthoritativeRequestHandlers, clientTimeout, context);
                     if (response is null)
-                        return null; //drop request
+                        return IsStreamProtocol(protocol) ? CreateServerFailureResponse(request, isRecursionAllowed) : null; //drop request
                 }
 
                 if (!isAllowed)

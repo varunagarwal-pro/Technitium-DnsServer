@@ -1,10 +1,14 @@
-# Sentinel-Labs Technitium DNS Server: Customization & Deployment Guide
+# 🛠️ Sentinel-Labs Technitium DNS Server: Customization & Deployment Guide
+
+![Project](https://img.shields.io/badge/Sentinel--Labs-Enterprise-0A66C2?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)
+![Version](https://img.shields.io/badge/Version-15.6.2-blue?style=flat-square)
 
 > **Purpose:** Canonical source of truth for all customizations, modified files, build steps, and fleet deployment procedures for `Technitium-DnsServer`. Future agents must consult this document directly to avoid rediscovery overhead.
 
 ---
 
-## 1. Repository Topology & Upstream Relationship
+## 1. 🏗️ Repository Topology & Upstream Relationship
 
 - **Fork Source:** `https://github.com/TechnitiumSoftware/DnsServer.git`
 - **Our Repository (`origin`):** `https://github.com/varunagarwal-pro/Technitium-DnsServer.git`
@@ -14,26 +18,26 @@
 
 ---
 
-## 2. Inventory of Sentinel-Labs Customizations
+## 2. 📦 Inventory of Sentinel-Labs Customizations
 
 The table below catalogs every file modified or added by Sentinel-Labs on top of upstream:
 
 | Component / File Path | Customization Purpose & Mechanism |
 |---|---|
-| [`DnsServerCore/Dns/DnsServer.cs`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/Dns/DnsServer.cs) | **CNAME / ANAME Hop Isolation:** In `ProcessCNAMEAsync` and `ProcessANAMEAsync`, instantiates `hopContext = new DnsClient.ResolverContext()` for each hop rather than reusing a shared context. Prevents premature `MaxOutboundRequests` exhaustion during complex CDN chains. |
+| [`DnsServerCore/Dns/DnsServer.cs`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/Dns/DnsServer.cs) | **CNAME / ANAME Hop Isolation:** Each hop gets a fresh `ResolverContext`, preventing premature `MaxOutboundRequests` exhaustion. **DoT/TCP resilience (C1):** resolver-capacity drops and TCP QPM-limited requests receive per-query SERVFAIL instead of closing the stream; intentional silent-drop policies remain unchanged. **DoT visibility (C2):** TLS authentication failures, handshake I/O errors, and timeouts are globally limited to one log event per 10 seconds and include client IP, SNI, and reason. |
 | [`DnsServerCore/www/css/main.css`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/css/main.css) | **Enterprise Glassmorphism UI:** Complete modern design system (`--glass-radius`, backdrop-filters, custom pill tabs, floating date-range toolbar, donut chart visual analytics, and `.enterprise-hero-grid`). Clickable hero cards use `.hero-clickable` / `.hero-link`. Upstream's classic `.stats-panel` is not rendered (`.stats-panel { display: none; }`). |
 | [`DnsServerCore/www/css/dark-grey-mode.css`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/css/dark-grey-mode.css) | **Dark Grey / Charcoal Glass Theme:** Dedicated enterprise dark palette distinct from the default slate blue dark mode. |
-| [`DnsServerCore/www/index.html`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/index.html) | **Modern Dual-Layout Dashboard:** Provides collapsible left sidebar, top action bar, Hero Stat Cards that replace upstream's `.stats-panel`, and a theme switch modal (System, Dark Blue, Dark Grey, Light, Amber, Classic Layout toggle and Display Time Zone). Sentinel-Labs-only IDs: `divDashboardStatusBar`, `divDashboardKpiGrid`, `appSidebarBackdrop`, `rdDisplayTzLocal/Ist/Utc`, `optQueryLogsDisplayTz`, `lblQueryLogsTzSuffix`. The hero cards open filtered query logs through upstream's `showQueryLogs(domain, clientIp, node, rcode, responseType)` (Total, Blocked, ServFail, Refused, Cached, Recursive, Authoritative; Dropped is not a valid filter). A hidden `display: none` block keeps the upstream stats IDs that the hero cards do not show (NoError, NxDomain, per-item percentages), so upstream `main.js` updates never hit missing elements. Every element ID must stay unique. **Menu order:** the Modern sidebar (`.sidebar-nav-list`) and Classic tabs (`#mainPanelTabList*`) both use Dashboard first, About last, and the rest alphabetical (Administration, Allowed, Apps, Blocked, Cache, DHCP, DNS Client, Logs, Settings, Zones). Put any new upstream tab in its alphabetical place in both lists. |
+| [`DnsServerCore/www/index.html`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/index.html) | **Modern Dual-Layout Dashboard:** Provides collapsible left sidebar, top action bar, Hero Stat Cards that replace upstream's `.stats-panel`, and a theme switch modal (System, Dark Blue, Dark Grey, Light, Amber, Classic Layout toggle and Display Time Zone). Sentinel-Labs-only IDs: `divDashboardStatusBar`, `divDashboardKpiGrid`, `appSidebarBackdrop`, `rdDisplayTzLocal/Ist/Utc`, `optQueryLogsDisplayTz`, `lblQueryLogsTzSuffix`. **Cache busting:** the app CSS/JS links in `<head>` carry `?v=sl-YYYYMMDD`; change the stamp in every UI release so browsers and Cloudflare fetch the new files (the server already sends `Cache-Control: no-cache`, but an open tab or edge cache can still show old code). The hero cards open filtered query logs through upstream's `showQueryLogs(domain, clientIp, node, rcode, responseType)` (Total, Blocked, ServFail, Refused, Cached, Recursive, Authoritative; Dropped is not a valid filter). A hidden `display: none` block keeps the upstream stats IDs that the hero cards do not show (NoError, NxDomain, per-item percentages), so upstream `main.js` updates never hit missing elements. Every element ID must stay unique. **Menu order:** the Modern sidebar (`.sidebar-nav-list`) and Classic tabs (`#mainPanelTabList*`) both use Dashboard first, About last, and the rest alphabetical (Administration, Allowed, Apps, Blocked, Cache, DHCP, DNS Client, Logs, Settings, Zones). Put any new upstream tab in its alphabetical place in both lists. |
 | [`DnsServerCore/www/js/main.js`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/js/main.js) | **Layout & Theme Switcher Engine:** Functions `setLayout(mode)`, `applyLayout(mode)`, `toggleLayout()` and theme persistence in `localStorage`. **URL hash deep-linking:** portal sections are addressable by URL hash, and browser back/forward navigation works. Stats counters are written by upstream's code to the standard `divDashboardStats*` IDs only. No `*Legacy` IDs exist. |
 | [`DnsServerCore/www/js/main.js`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/js/main.js) (Sentinel-Labs block at end of file) | **Display Time Zone:** Browser / IST / UTC option (`localStorage` key `display_timezone`, set in Display Preferences or the Query Logs filter bar). `formatDisplayTime()` / `toDisplayMoment()` render server UTC timestamps; `displayInputToIso()` reads the From/To inputs in the chosen zone. A `MutationObserver` on `#preLogViewerBody` rewrites `[yyyy-MM-dd HH:mm:ss UTC]` prefixes in View Logs (display only, server data unchanged). **Rich dashboard:** `renderDashboardStatusBar()` (blocking state with Pause 5m / Enable, server, version, uptime, range, last update) and `renderDashboardKpiGrid()` (10 tiles, each opening the matching query logs). Blocking state is read silently from `api/settings/get` at most once a minute, and only if the user can view Settings. **Matrix rows** link to query logs (`matrixQueryLogLink()`). **Nav sync:** `showQueryLogs()` is wrapped so jumping to Query Logs also updates the sidebar, `aria-current`, breadcrumbs, URL hash and the dashboard auto-refresh timer. Quick theme cycle includes Amber. |
 | [`DnsServerCore/www/js/logs.js`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/js/logs.js) | **Merge surface (upstream file, 5 lines changed):** in `queryLogs()` and `exportQueryLogsCsv()`, From/To use `displayInputToIso(...)` instead of `moment(...).toISOString()`; the Timestamp column uses `formatDisplayTime(...)` instead of `moment(...).local().format(...)`. Re-apply these if upstream changes those lines. |
 | [`DnsServerCore/www/css/main.css`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/css/main.css) ("Sentinel-Labs UI enhancements" section at end of file) | Mobile off-canvas sidebar with backdrop (Esc / tap closes) and no horizontal overflow at phone widths in either layout; slimmer Classic heading and top padding; the duplicate auto-refresh control is hidden in Modern; empty cluster dropdowns are hidden; equal-height donut cards (`.donut-row`); KPI / status-bar / matrix-link styles for all themes; Amber styling for the Modern sidebar and top bar; `:focus-visible` outlines and `prefers-reduced-motion` support. |
 | [`DnsServerCore/DnsServerCore.csproj`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/DnsServerCore.csproj) | Preserves `dark-grey-mode.css` content packaging (`CopyToOutputDirectory=PreserveNewest`). |
-| [`Apps/AdvancedBlockingApp/`](file:///D:/Sentinel-Labs/Technitium-DnsServer/Apps/AdvancedBlockingApp/) | **Enhanced AdBlock Engine:** Full AdGuard/AdBlock syntax support, CNAME cloaking unmasking, partitioned indexing, and non-blocking async dnsrewrite. |
+| [`Sentinel-Core/.../technitium-advanced-blocking/src/`](../Sentinel-Core/code/services/technitium-advanced-blocking/src/) (formerly `Apps/AdvancedBlockingApp/`) | **Enhanced AdBlock Engine:** AdGuard/AdBlock syntax support, CNAME cloaking unmasking, partitioned indexes, and async dnsrewrite. B1–B4 add endpoint suffix/wildcard precedence, bounded regex matching, opt-in decision logging, and snapshot reloads that reuse unchanged regexes and preserve active snapshots on read/build failures. AdBlock rules and group-wide `$badfilter` cancellation keys are published together; each request captures one policy for allowance, blocking, and CNAME post-processing. The shared `DnsRequestContext` associates a verified unsigned TSIG request with its original signed datagram before app callbacks, preserving policy identity without changing authentication or the post-processor's incoming-request contract. Duplicate regexes are removed within each inline array or individual feed. |
 
 ---
 
-## 3. Upstream Upgrade & Merge Protocol
+## 3. 🔄 Upstream Upgrade & Merge Protocol
 
 When a new release tag (e.g. `v15.6.3`) is released by upstream:
 
@@ -51,7 +55,7 @@ When a new release tag (e.g. `v15.6.3`) is released by upstream:
      dotnet build "D:\Sentinel-Labs\TechnitiumLibrary\TechnitiumLibrary.Security.OTP\TechnitiumLibrary.Security.OTP.csproj" -c Release
      ```
 3. **Execute 3-Way Merge:**
-   - Branch: `git checkout -b uprev/<date>` (see `Sentinel-Core/Docs/Repos-Sync.md`; never use `-X ours` / `-X theirs`)
+   - Branch: `git checkout -b uprev/<date>` (see `Sentinel-Core/Docs/Upstream-Repo-Sync.md`; never use `-X ours` / `-X theirs`)
    - Merge: `git merge <tag> --no-ff --no-commit`
    - **Resolution Rules (resolve only the conflict hunks; keep every auto-merged upstream change):**
      - `DnsServer.cs`: Merges cleanly. Retain `hopContext` in CNAME/ANAME methods.
@@ -71,9 +75,9 @@ When a new release tag (e.g. `v15.6.3`) is released by upstream:
 
 ---
 
-## 4. Build, Packaging & Multi-Server Deployment Pipeline
+## 4. 🚀 Build, Packaging & Multi-Server Deployment Pipeline
 
-### Target Fleet Topology
+### 🌐 Target Fleet Topology
 
 | Node Name | Role | Public IP | SSH Port | User | Identity Key |
 |---|---|---|---|---|---|
@@ -81,10 +85,13 @@ When a new release tag (e.g. `v15.6.3`) is released by upstream:
 | **Oregon** | Secondary Node | `35.212.133.199` | `41022` | `vexa` | `D:\Sentinel-Labs\Sentinel-Core\Confidential\Keys\pisg_ed25519` |
 | **Mumbai** | **Primary Node** | `80.225.252.237` | `41022` | `vexa` | `D:\Sentinel-Labs\Sentinel-Core\Confidential\Keys\pisg_ed25519` |
 
-> [!IMPORTANT]
-> **Cluster Maintenance Sequencing:** Per Technitium clustering rules, **always upgrade all secondary nodes (Phoenix, Oregon) before upgrading the primary node (Mumbai)**.
+> [!WARNING]
+> **Dual-stack firewall parity:** Every node publishes an AAAA record for its DoT hostnames, so each inbound rule must exist for IPv6 as well as IPv4. On Oregon (GCP project `private-cloud-id`, VPC `psig-vpc`), an IPv4-only rule set silently broke Android Private DNS. On 2026-11-05 this was fixed with `psig-vpc-allow-dns-ipv6` (tcp/udp 53, tcp 853, `::/0`) and `psig-vpc-allow-https-ipv6` (tcp 443). After any firewall change, verify IPv6 TCP 853 from outside.
 
-### Step 1: Compile & Package Artifact
+> [!IMPORTANT]
+> **Cluster Maintenance Sequencing:** Upgrade secondary nodes (Phoenix, Oregon) before the primary node (Mumbai) by default. A simultaneous rollout requires explicit user approval accepting the shared outage window; the user explicitly overrode sequencing for the current three-node core/plugin release.
+
+### 🧱 Step 1: Compile & Package Artifact
 ```powershell
 # 1. Publish Release binaries
 dotnet publish "D:\Sentinel-Labs\Technitium-DnsServer\DnsServerApp\DnsServerApp.csproj" -c Release -o "D:\Sentinel-Labs\Technitium-DnsServer\temp\publish"
@@ -93,7 +100,7 @@ dotnet publish "D:\Sentinel-Labs\Technitium-DnsServer\DnsServerApp\DnsServerApp.
 tar -czf "D:\Sentinel-Labs\Technitium-DnsServer\temp\technitium-dns-publish.tar.gz" -C "D:\Sentinel-Labs\Technitium-DnsServer\temp\publish" .
 ```
 
-### Step 2: Deploy to Nodes (Phoenix -> Oregon -> Mumbai)
+### 🚀 Step 2: Deploy to Nodes (Phoenix -> Oregon -> Mumbai)
 For each node in sequence:
 ```powershell
 $key = "D:\Sentinel-Labs\Sentinel-Core\Confidential\Keys\pisg_ed25519"
@@ -110,29 +117,47 @@ ssh -p 41022 -i $key "vexa@${ip}" "chmod +x /tmp/update_technitium.sh && /tmp/up
 ssh -p 41022 -i $key "vexa@${ip}" "dig +short @127.0.0.1 google.com; rm -f /tmp/technitium-dns-publish.tar.gz /tmp/update_technitium.sh"
 ```
 
-### Remote Service Details
+### ⚙️ Remote Service Details
 - **Installation Directory:** `/opt/technitium/dns/`
 - **Config Directory:** `/etc/dns` (binary format, modified via web console or REST API)
 - **Systemd Unit:** `/etc/systemd/system/dns.service` (runs as unprivileged user `dns-server:dns-server`)
 - **Runtime Override:** `/etc/systemd/system/dns.service.d/override.conf`. Server GC `DOTNET_gcServer=1` (Workstation GC caused query stalls). Heap cap `0x80000000` (2 GB) on Mumbai/Phoenix and `0x10000000` (256 MB) on Oregon. See `Sentinel-Core/Docs/Infrastructure.md` §16.3–§16.4.
-- **Resolver & DoT settings (live config, not in this repo):** `tcpReceiveTimeout` / `tcpSendTimeout` = 60000 ms and `clientTimeout` = 4000 ms. These fix Android Private DNS "server unavailable" errors. Also `resolverTimeout` = 3000 ms, `resolverRetries` = 2, `resolverConcurrency` = 4, `serveStale` = false. See `Infrastructure.md` §16.3 and §16.8. Re-verify them after every upgrade.
+- **Resolver & DoT settings (live config, not in this repo):** Read-only `GET /api/settings/get` checks on **2026-11-04** returned the same values on Mumbai, Phoenix, and Oregon. Timeout values are milliseconds; each QPM entry is `prefix: UDP/TCP queries per minute`.
 
-## 5. Forward-Confirmed Reverse DNS (Auto PTR + Wild IP Architecture)
+  | Setting | Mumbai | Phoenix | Oregon |
+  |---|---:|---:|---:|
+  | `tcpReceiveTimeout` | 60000 | 60000 | 60000 |
+  | `tcpSendTimeout` | 60000 | 60000 | 60000 |
+  | `clientTimeout` | 4000 | 4000 | 4000 |
+  | IPv4 QPM prefixes | `/32: 600/600`; `/24: 6000/6000` | `/32: 600/600`; `/24: 6000/6000` | `/32: 600/600`; `/24: 6000/6000` |
+  | IPv6 QPM prefixes | `/128: 600/600`; `/64: 1200/1200`; `/56: 6000/6000` | `/128: 600/600`; `/64: 1200/1200`; `/56: 6000/6000` | `/128: 600/600`; `/64: 1200/1200`; `/56: 6000/6000` |
+  | QPM sample window | 5 minutes | 5 minutes | 5 minutes |
+  | UDP truncation when QPM-limited | 50% | 50% | 50% |
+  | QPM bypass list | Empty | Empty | Empty |
+  | `resolverRetries` | 2 | 2 | 2 |
+  | `resolverTimeout` | 3000 | 3000 | 3000 |
+  | `resolverConcurrency` | 4 | 4 | 4 |
+  | `resolverMaxStackCount` | 30 | 30 | 30 |
+  | `maxConcurrentResolutionsPerCore` | 100 | 100 | 100 |
+
+  `serveStale = false` remains the previously documented cache setting. Re-verify all live values after every upgrade.
+
+## 5. 🔁 Forward-Confirmed Reverse DNS (Auto PTR + Wild IP Architecture)
 
 The cluster utilizes the **Auto PTR (v5.0)** and **Wild IP (v6.1)** DNS applications to provide automated Forward-Confirmed Reverse DNS (FCrDNS) for WireGuard mesh identities (`10.13.13.x`), private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), and cluster IPs without maintaining manual record tables.
 
-### Sub-Zone Topology (Zero Cloudflare Collision)
+### 🧭 Sub-Zone Topology (Zero Cloudflare Collision)
 To prevent collisions with Cloudflare-hosted apex domains, primary zones are isolated strictly to dedicated sub-zones (`ip.<domain>`):
 - **Mumbai (`80.225.252.237`):** `ip.agrawal.pro` + `10.in-addr.arpa` + `168.192.in-addr.arpa`
 - **Phoenix (`129.146.39.180`):** `ip.vastrikafashion.in` + `10.in-addr.arpa` + `168.192.in-addr.arpa`
 - **Oregon (`35.212.133.199`):** `ip.agarwal.us.kg` + `10.in-addr.arpa` + `168.192.in-addr.arpa`
 
-### Cloudflare Boundary
+### ☁️ Cloudflare Boundary
 - **Internal / Cluster / VPN Resolution:** 100% confined to Technitium. Cloudflare requires **zero** configuration.
 - **Optional Public Delegation:** If public internet resolvers ever need to resolve `*.ip.<domain>`, add an `NS` record in Cloudflare:
   - Record: `NS` | Name: `ip` | Nameserver: `hub.<domain>` (e.g. `hub.agrawal.pro`)
 
-### Configuration Schemas
+### 🧩 Configuration Schemas
 1. **Forward Sub-Zone (`ip.<domain>`) APP Record:**
    - **Type:** `APP`
    - **Name:** `ip.<domain>`
@@ -162,3 +187,63 @@ To prevent collisions with Cloudflare-hosted apex domains, primary zones are iso
        "ipSeparator": "-"
      }
      ```
+
+## 6. 🧰 Custom DNS Applications & Ownership
+
+> [!IMPORTANT]
+> Production query logging is provided by **Sentinel Client ID**. Do not install Technitium's stock **Query Logs (Sqlite)** app on production nodes. Sentinel Client ID uses SQLite internally; that does not make it the stock app.
+
+### 🛡️ Advanced Blocking
+
+| Component | Canonical source | Purpose |
+|---|---|---|
+| Engine | [`technitium-advanced-blocking/src/`](../Sentinel-Core/code/services/technitium-advanced-blocking/src/) in Sentinel-Core (moved from `Apps/AdvancedBlockingApp/` on 2026-11-05; only a pointer file remains there) | Custom Technitium app implementing multi-profile blocking, regex and AdBlock rules, CNAME-cloaking checks, and optional query decision logs. Plugin version **12.0.100**, kept above stock `12.0` so the App Store never offers the stock app as an update. `DnsServer.sln` and `Tests/AdvancedBlockingApp` build it from the Sentinel-Core path. |
+| Node configurations | [`technitium-advanced-blocking/`](../Sentinel-Core/code/services/technitium-advanced-blocking/) in Sentinel-Core | `mumbai-dnsApp.config`, `phoenix-dnsApp.config`, and `oregon-dnsApp.config` define node-specific profiles, feeds, and endpoint mappings. |
+| Companion apps | [`drop-requests.config`](../Sentinel-Core/code/services/technitium-advanced-blocking/drop-requests.config), [`no-data.config`](../Sentinel-Core/code/services/technitium-advanced-blocking/no-data.config) | Drop Requests applies explicit network/malformed-packet policy; NO DATA returns `NOERROR` with no answers for configured cases. |
+| Config rollout | [`deploy-app-configs.ps1`](../Sentinel-Core/code/services/technitium-advanced-blocking/deploy-app-configs.ps1) | Deploys the app configurations to all three nodes, restarts the DNS service unless skipped, and verifies A and HTTPS (Type 65) resolution. It does not replace the fork's engine build/release process. |
+
+Sentinel-Core is the single source of truth for both the Advanced Blocking engine and its node configurations. When merging an upstream release, port upstream changes from `Apps/AdvancedBlockingApp/` onto the Sentinel-Core `src/` copy by hand, then bump the Sentinel build number (for example `12.0.101`, or `<new upstream>.100` after an upstream version change). Profile selection uses DoT/DoH endpoint hostnames with label-boundary matching and most-specific-match precedence.
+
+> [!NOTE]
+> Decision logging is disabled by default. Set `"enableDecisionLogging": true` at the top level of the Advanced Blocking configuration only when needed: the general-log records include device endpoints, client IPs, queried domains, profiles, rules, and list sources.
+
+> [!WARNING]
+> Keep `blockedQuestions` in `drop-requests.config` empty (`[]`). Never black-hole HTTPS (Type 65) or SVCB (Type 64): clients issue these modern service-binding queries alongside address lookups, and dropping them can cause multi-second client timeouts. Use the NO DATA app only when an explicit `NOERROR`/zero-answer response is intended.
+
+### 🏷️ Sentinel Client ID
+
+| Concern | Production behavior |
+|---|---|
+| Canonical source | [`sentinel-client-id/`](../Sentinel-Core/code/services/sentinel-client-id/) in Sentinel-Core; this fork consumes it as a Technitium app. |
+| Role | Replaces the stock Query Logs (Sqlite) app and provides device-aware query logging through Technitium's query-log interfaces. |
+| App directory | `/etc/dns/apps/Sentinel Client ID/` on Mumbai, Phoenix, and Oregon. |
+| Database | `sqliteDbPath` defaults to `querylogs.db`, relative to the app's `ApplicationFolder` (normally `/etc/dns/apps/Sentinel Client ID/querylogs.db`). |
+| Device identification | DoT TLS SNI, DoH request host, EDNS0 client tag (option 65001), then configured client-IP mappings. |
+| Mapping configuration | `tagMappings` maps device tags to display names; `clientIpMappings` maps known addresses to display names in `dnsApp.config`. |
+
+Build the app from the Sentinel-Core service directory with:
+
+```powershell
+dotnet publish D:\Sentinel-Labs\Sentinel-Core\code\services\sentinel-client-id\SentinelClientIdApp.csproj -c Release --no-self-contained -o D:\Sentinel-Labs\Sentinel-Core\temp\client-id-release\publish -p:BaseIntermediateOutputPath=D:\Sentinel-Labs\Sentinel-Core\temp\client-id-release\obj\ -p:MSBuildProjectExtensionsPath=D:\Sentinel-Labs\Sentinel-Core\temp\client-id-release\obj\ -p:BaseOutputPath=D:\Sentinel-Labs\Sentinel-Core\temp\client-id-release\bin\
+```
+
+Verify that the package contains the published app output and native SQLite dependencies for Linux ARM64 and x64. Install under `/etc/dns/apps/Sentinel Client ID/`, preserving the existing database and `dnsApp.config`. The service directory's [`coordinated_release.py`](../Sentinel-Core/Code/services/sentinel-client-id/coordinated_release.py) provides hash validation, stopped-service SQLite backups using the configured database path, bounded DNS/plugin readiness, and binary-only rollback. `install.sh` delegates to this transaction and rejects the unsafe app-only ZIP interface. Configuration-only backups use [`technitium-config-backup`](../Sentinel-Core/Code/services/technitium-config-backup/) and exclude the configured Client ID database and sidecars rather than making an inconsistent hot copy.
+
+**Upgrade compatibility checks:** the current app creates `dns_logs` when absent, adds the `device_name` column to older databases, and maintains indexes during initialization. It does not declare a separate schema-version table. Resolve the configured `sqliteDbPath`, make an integrity-checked SQLite backup that includes WAL content, retain the current app files, and verify app startup plus Query Logs results afterward. Validate old/new schema compatibility before relying on binary-only rollback. Never automatically restore an older database over newer query history; any database recovery requires preserving the newest database/WAL and an explicit recovery decision.
+
+> [!WARNING]
+> DoT does **not** pass through Caddy. Android Private DNS connects directly to Technitium on port 853; Sentinel Client ID extracts the device name from the TLS SNI metadata. DoH is a separate path and uses the request host.
+
+## 7. 💡 Approved Customization Ideas (Proposal Only)
+
+The following ideas are approved for exploration, not implementation or production rollout:
+
+| # | Idea | Source / behavior to define before implementation |
+|---|---|---|
+| E1 | Per-device dashboard tile for query count, blocked count, and last seen | Sentinel Client ID query-log data; define refresh interval and retention semantics. |
+| E2 | Telegram alert when a device's DoT traffic stops or its NXDOMAIN rate spikes | Sentinel Client ID metrics; define per-device baselines, quiet periods, and alert thresholds. |
+| E3 | One-click “Allow for this device/profile” from Query Logs | Advanced Blocking profile/rule model; require a bounded rule scope, confirmation, and audit trail. |
+| E4 | Per-device profile schedules (for example, a family profile at night) | Device-to-profile mapping; define timezone, schedule precedence, and safe fallback behavior. |
+
+> [!NOTE]
+> E5, a vendor-essential allowlist for phone brands, was rejected and is intentionally excluded.

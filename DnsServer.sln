@@ -33,7 +33,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QueryLogsSqliteApp", "Apps\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LogExporterApp", "Apps\LogExporterApp\LogExporterApp.csproj", "{6F9BCCA9-6422-484B-A065-EF8AF9DA74B5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdvancedBlockingApp", "Apps\AdvancedBlockingApp\AdvancedBlockingApp.csproj", "{A4C31093-CA65-42D4-928A-11907076C0DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AdvancedBlockingApp", "..\Sentinel-Core\Code\services\technitium-advanced-blocking\src\AdvancedBlockingApp.csproj", "{A4C31093-CA65-42D4-928A-11907076C0DE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NxDomainApp", "Apps\NxDomainApp\NxDomainApp.csproj", "{BB0010FC-20E9-4397-BF9B-C9955D9AD339}"
 EndProject
