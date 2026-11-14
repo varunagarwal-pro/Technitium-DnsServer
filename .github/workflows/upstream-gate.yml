@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   gate:
-    if: startsWith(github.head_ref, 'sync/upstream-')
+    if: startsWith(github.head_ref, 'upstream-try-merge') || startsWith(github.head_ref, 'sync/upstream-')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
