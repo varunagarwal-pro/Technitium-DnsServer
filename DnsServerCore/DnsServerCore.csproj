@@ -73,7 +73,6 @@
 		<None Remove="www\css\bootstrap.min.css" />
 		<None Remove="www\css\bootstrap.min.css.map" />
 		<None Remove="www\css\dark-mode.css" />
-		<None Remove="www\css\dark-grey-mode.css" />
 		<None Remove="www\css\font-awesome.min.css" />
 		<None Remove="www\css\main.css" />
 		<None Remove="www\favicon.ico" />
@@ -155,9 +154,6 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="www\css\dark-mode.css">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-		<Content Include="www\css\dark-grey-mode.css">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 		<Content Include="www\favicon.ico">

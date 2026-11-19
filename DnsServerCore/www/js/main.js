@@ -1,4 +1,4 @@
-/*
+﻿/*
 Technitium DNS Server
 Copyright (C) 2026  Shreyas Zare (shreyas@technitium.com)
 
@@ -18,18 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 var refreshTimerHandle;
-var autoRefreshTimer = null;
-var autoRefreshInterval = 10000;
-var autoRefreshFastPollCount = 0;
-var lastMetricsPollTime = 0;
-var lastMetricsTotalQueries = -1;
-var isPollingDashboard = false;
-var isDashboardTabActive = true;
-window.chartDashboardMain = null;
-window.chartDashboardCache = null;
-window.chartDashboardClients = null;
-window.chartDashboardBlocked = null;
-window.chartDashboardHealth = null;
 var reverseProxyDetected = false;
 var quickBlockLists = null;
 var quickForwardersList = null;
@@ -39,12 +27,8 @@ function showPageLogin(autoLogin) {
 
     localStorage.removeItem("token");
 
-    $("#header").hide();
     $("#pageMain").hide();
     $("#mnuUser").hide();
-    $("#appShell").hide();
-    $("#appSidebar").hide();
-    $("#appTopBar").hide();
 
     $("#txtUser").val("");
     $("#txtPass").val("");
@@ -52,7 +36,7 @@ function showPageLogin(autoLogin) {
     $("#div2FAOTP").hide();
     $("#txt2FATOTP").val("");
     $("#btnLogin").button("reset");
-    $("#pageLogin").css("display", "flex").show();
+    $("#pageLogin").show();
 
     $("#txtUser").trigger("focus");
 
@@ -60,7 +44,6 @@ function showPageLogin(autoLogin) {
         clearInterval(refreshTimerHandle);
         refreshTimerHandle = null;
     }
-    stopAutoRefreshTimer();
 
     HTTPRequest({
         url: "api/status",
@@ -84,96 +67,26 @@ function showPageMain() {
     $("#txt2FATOTP").val("");
 
     $("#pageLogin").hide();
-    $("#pageMain").show();
 
     switch (sessionData.type) {
         case "RemoteSSO":
             $("#mnuUserChangePassword").hide();
             $("#mnuUserConfigure2FA").hide();
-            $("#mnuSidebarChangePassword").hide();
-            $("#mnuSidebarConfigure2FA").hide();
-            $("#mnuTopbarChangePassword").hide();
-            $("#mnuTopbarConfigure2FA").hide();
             break;
 
         case "RemoteLDAP":
             $("#mnuUserChangePassword").hide();
             $("#mnuUserConfigure2FA").show();
-            $("#mnuSidebarChangePassword").hide();
-            $("#mnuSidebarConfigure2FA").show();
-            $("#mnuTopbarChangePassword").hide();
-            $("#mnuTopbarConfigure2FA").show();
             break;
 
         case "Local":
         default:
             $("#mnuUserChangePassword").show();
             $("#mnuUserConfigure2FA").show();
-            $("#mnuSidebarChangePassword").show();
-            $("#mnuSidebarConfigure2FA").show();
-            $("#mnuTopbarChangePassword").show();
-            $("#mnuTopbarConfigure2FA").show();
             break;
     }
 
-    $("#pageLogin").hide();
     $("#mnuUser").show();
-
-    const currentLayout = localStorage.getItem("technitium_layout") || "modern";
-    if (currentLayout === "classic") {
-        $("#header").show();
-        $("#appSidebar").hide();
-        $("#appTopBar").hide();
-        $("#appShell").show();
-    } else {
-        $("#header").hide();
-        $("#appShell").css("display", "flex").show();
-        $("#appSidebar").show();
-        $("#appTopBar").show();
-    }
-
-    if (localStorage.getItem("sidebar_collapsed") === "true") {
-        $("#appSidebar").addClass("collapsed");
-        $("#iconSidebarCollapse").attr("class", "fa fa-chevron-right");
-    } else {
-        $("#iconSidebarCollapse").attr("class", "fa fa-chevron-left");
-    }
-
-    if (typeof sessionData !== "undefined" && sessionData && sessionData.displayName) {
-        $("#lblSidebarUserName").text(sessionData.displayName);
-        $("#lblSidebarUserMenuHeader").text(sessionData.displayName);
-        $("#lblTopbarUserName").text(sessionData.displayName);
-        $("#mnuUserDisplayName").text(sessionData.displayName);
-    }
-
-    if (typeof sessionData !== "undefined" && sessionData && sessionData.info) {
-        if (sessionData.info.dnsServerDomain) {
-            $("#lblDnsServerDomainModern").text("• " + sessionData.info.dnsServerDomain);
-        }
-        if (sessionData.info.version) {
-            $("#lblFooterVersion").text("v" + sessionData.info.version);
-        }
-        // Sync Permissions to Sidebar Items defensively
-        if (sessionData.info.permissions) {
-            var perms = sessionData.info.permissions;
-            if (perms.Dashboard && perms.Dashboard.canView === false) $("#sidebarNavItemDashboard").hide(); else $("#sidebarNavItemDashboard").show();
-            if (perms.Zones && perms.Zones.canView === false) $("#sidebarNavItemZones").hide(); else $("#sidebarNavItemZones").show();
-            if (perms.Cache && perms.Cache.canView === false) $("#sidebarNavItemCachedZones").hide(); else $("#sidebarNavItemCachedZones").show();
-            if (perms.Allowed && perms.Allowed.canView === false) $("#sidebarNavItemAllowedZones").hide(); else $("#sidebarNavItemAllowedZones").show();
-            if (perms.Blocked && perms.Blocked.canView === false) $("#sidebarNavItemBlockedZones").hide(); else $("#sidebarNavItemBlockedZones").show();
-            if (perms.Apps && perms.Apps.canView === false) $("#sidebarNavItemApps").hide(); else $("#sidebarNavItemApps").show();
-            if (perms.DnsClient && perms.DnsClient.canView === false) $("#sidebarNavItemDnsClient").hide(); else $("#sidebarNavItemDnsClient").show();
-            if (perms.Settings && perms.Settings.canView === false) $("#sidebarNavItemSettings").hide(); else $("#sidebarNavItemSettings").show();
-            var dhcpPerm = perms.DhcpServer || perms.Dhcp;
-            if (dhcpPerm && dhcpPerm.canView === false) $("#sidebarNavItemDhcp").hide(); else $("#sidebarNavItemDhcp").show();
-            var adminPerm = perms.Administration || perms.Admin;
-            if (adminPerm && adminPerm.canView === false) $("#sidebarNavItemAdmin").hide(); else $("#sidebarNavItemAdmin").show();
-            if (perms.Logs && perms.Logs.canView === false) $("#sidebarNavItemLogs").hide(); else $("#sidebarNavItemLogs").show();
-        }
-    }
-
-    markActiveNav("Dashboard");
-    updateAppBreadcrumbs("Dashboard");
 
     $(".nav-tabs li").removeClass("active");
     $(".tab-pane").removeClass("active");
@@ -215,7 +128,6 @@ function showPageMain() {
     if (sessionData.info.permissions.Dashboard.canView) {
         $("#mainPanelTabListDashboard").show();
         refreshDashboard();
-        startAutoRefreshTimer();
     }
     else {
         $("#mainPanelTabListDashboard").hide();
@@ -352,14 +264,6 @@ function showPageMain() {
 
     checkForUpdate();
 
-    // Deep-link directly to URL section hash if specified
-    var initialHashTab = getTabFromHash(window.location.hash);
-    if (initialHashTab && initialHashTab !== "Dashboard") {
-        setTimeout(function () {
-            switchAppTab(initialHashTab, false);
-        }, 80);
-    }
-
     refreshTimerHandle = setInterval(function () {
         var type = $("input[name=rdStatType]:checked").val();
         if (type === "lastHour")
@@ -371,32 +275,12 @@ function showPageMain() {
 
 $(function () {
     initTheme();
-    initLayout();
     initUpdateNotificationMenu();
 
     var headerHtml = $("#header").html();
 
     $("#header").html("<div class=\"title\"><a href=\".\"><img src=\"img/logo25x25.png\" alt=\"Technitium Logo\" /><span class=\"text\" style=\"color: #ffffff;\">Technitium</span></a>" + headerHtml + "</div>");
     $("#footer").html("<div class=\"content\"><a href=\"https://technitium.com/\" target=\"_blank\">Technitium</a> | <a href=\"https://blog.technitium.com/\" target=\"_blank\">Blog</a> | <a href=\"https://go.technitium.com/?id=35\" target=\"_blank\">Donate</a> | <a href=\"https://dnsclient.net/\" target=\"_blank\">DNS Client</a> | <a href=\"https://github.com/TechnitiumSoftware/DnsServer\" target=\"_blank\"><i class=\"fa fa-github\"></i>&nbsp;GitHub</a> | <a href=\"#\" onclick=\"showAbout(); return false;\">About</a></div>");
-
-    // Dynamic Server Domain Sync for Modern Topbar Breadcrumbs
-    var lblDomainElem = document.getElementById("lblDnsServerDomain");
-    if (lblDomainElem) {
-        var domainObserver = new MutationObserver(function () {
-            var domainText = $("#lblDnsServerDomain").text();
-            if (domainText) {
-                domainText = domainText.replace(/^[\s\-•]+/, "").trim();
-                if (domainText) {
-                    $("#lblDnsServerDomainModern").text("• " + domainText).show();
-                } else {
-                    $("#lblDnsServerDomainModern").text("").hide();
-                }
-            } else {
-                $("#lblDnsServerDomainModern").text("").hide();
-            }
-        });
-        domainObserver.observe(lblDomainElem, { childList: true, characterData: true, subtree: true });
-    }
 
     loadQuickBlockLists();
     loadQuickForwardersList();
@@ -749,11 +633,14 @@ $(function () {
         if (type === "custom") {
             $("#divCustomDayWise").show();
 
-            var startVal = $("#dpCustomDayWiseStart").val();
-            var endVal = $("#dpCustomDayWiseEnd").val();
-            if (!startVal || !endVal) {
-                $("#dpCustomDayWiseStart").val(moment().subtract(24, "hours").format("YYYY-MM-DDTHH:mm"));
-                $("#dpCustomDayWiseEnd").val(moment().format("YYYY-MM-DDTHH:mm"));
+            if ($("#dpCustomDayWiseStart").val() === "") {
+                $("#dpCustomDayWiseStart").trigger("focus");
+                return;
+            }
+
+            if ($("#dpCustomDayWiseEnd").val() === "") {
+                $("#dpCustomDayWiseEnd").trigger("focus");
+                return;
             }
 
             refreshDashboard();
@@ -767,67 +654,6 @@ $(function () {
 
     $("#btnCustomDayWise").on("click", function () {
         refreshDashboard();
-    });
-
-    window.setCustomRangePreset = function (preset) {
-        var now = moment();
-        var start;
-        switch (preset) {
-            case "today":
-                start = moment().startOf("day");
-                break;
-            case "yesterday":
-                start = moment().subtract(1, "days").startOf("day");
-                now = moment().subtract(1, "days").endOf("day");
-                break;
-            case "3d":
-                start = moment().subtract(3, "days");
-                break;
-            case "14d":
-                start = moment().subtract(14, "days");
-                break;
-            default:
-                start = moment().subtract(24, "hours");
-                break;
-        }
-        $("#dpCustomDayWiseStart").val(start.format("YYYY-MM-DDTHH:mm"));
-        $("#dpCustomDayWiseEnd").val(now.format("YYYY-MM-DDTHH:mm"));
-        refreshDashboard();
-    };
-
-    // Initialize saved subview
-    var savedSubView = localStorage.getItem("dashboard_chart_subview") || "traffic";
-    switchDashboardChartView(savedSubView);
-
-    // Initialize Auto-Refresh Cadence
-    var savedCadence = localStorage.getItem("dashboard_auto_refresh_cadence") || "10000";
-    setAutoRefreshInterval(savedCadence);
-
-    // Visibility change listener to pause/resume auto-refresh
-    document.addEventListener("visibilitychange", function () {
-        if (document.hidden) {
-            stopAutoRefreshTimer();
-            $("#livePulseBeacon, #livePulseBeaconLegacy").addClass("paused");
-        } else {
-            if (autoRefreshInterval > 0 && isDashboardTabActive) {
-                var beaconClass = autoRefreshInterval === 3000 ? "live-pulse-beacon fast" : "live-pulse-beacon";
-                $("#livePulseBeacon, #livePulseBeaconLegacy").attr("class", beaconClass);
-                startAutoRefreshTimer();
-                pollLiveMetrics();
-            }
-        }
-    });
-
-    // Classic tab listener for shown.bs.tab to pause/resume auto-refresh
-    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-        var target = $(e.target).attr("href");
-        if (target === "#mainPanelTabPaneDashboard") {
-            isDashboardTabActive = true;
-            startAutoRefreshTimer();
-        } else {
-            isDashboardTabActive = false;
-            stopAutoRefreshTimer();
-        }
     });
 });
 
@@ -885,12 +711,12 @@ function showAbout() {
 function initUpdateNotificationMenu() {
     var disableUpdateNotification = localStorage.getItem("disableUpdateNotification");
     if (disableUpdateNotification === "true") {
-        $("#mnuDisableCheckForUpdateNotification, #mnuSidebarDisableCheckForUpdateNotification, #mnuTopbarDisableCheckForUpdateNotification").hide();
-        $("#mnuEnableCheckForUpdateNotification, #mnuSidebarEnableCheckForUpdateNotification, #mnuTopbarEnableCheckForUpdateNotification").show();
+        $("#mnuDisableCheckForUpdateNotification").hide();
+        $("#mnuEnableCheckForUpdateNotification").show();
     }
     else {
-        $("#mnuEnableCheckForUpdateNotification, #mnuSidebarEnableCheckForUpdateNotification, #mnuTopbarEnableCheckForUpdateNotification").hide();
-        $("#mnuDisableCheckForUpdateNotification, #mnuSidebarDisableCheckForUpdateNotification, #mnuTopbarDisableCheckForUpdateNotification").show();
+        $("#mnuEnableCheckForUpdateNotification").hide();
+        $("#mnuDisableCheckForUpdateNotification").show();
     }
 }
 
@@ -899,19 +725,17 @@ function disableUpdateNotification() {
         return;
 
     localStorage.setItem("disableUpdateNotification", true);
-    $("#mnuDisableCheckForUpdateNotification, #mnuSidebarDisableCheckForUpdateNotification, #mnuTopbarDisableCheckForUpdateNotification").hide();
-    $("#mnuEnableCheckForUpdateNotification, #mnuSidebarEnableCheckForUpdateNotification, #mnuTopbarEnableCheckForUpdateNotification").show();
+    $("#mnuDisableCheckForUpdateNotification").hide();
+    $("#mnuEnableCheckForUpdateNotification").show();
     $("#lnkUpdateAvailable").hide();
-    $("#lnkUpdateAvailableModern").hide();
-    $("#sidebarUpdateDot").hide();
 
     showAlert("success", "Notification Disabled!", "Update notification was disabled successfully.");
 }
 
 function enableUpdateNotification() {
     localStorage.setItem("disableUpdateNotification", false);
-    $("#mnuEnableCheckForUpdateNotification, #mnuSidebarEnableCheckForUpdateNotification, #mnuTopbarEnableCheckForUpdateNotification").hide();
-    $("#mnuDisableCheckForUpdateNotification, #mnuSidebarDisableCheckForUpdateNotification, #mnuTopbarDisableCheckForUpdateNotification").show();
+    $("#mnuEnableCheckForUpdateNotification").hide();
+    $("#mnuDisableCheckForUpdateNotification").show();
 
     showAlert("success", "Notification Enabled!", "Update notification was enabled successfully.");
 }
@@ -938,7 +762,6 @@ function checkForUpdate(force) {
 
                 lnkUpdateAvailable.text(responseJSON.response.updateTitle);
                 $("#lblUpdateAvailableTitle").text(responseJSON.response.updateTitle);
-                $("#lnkUpdateAvailableModern").html("<i class='fa fa-bell'></i> " + responseJSON.response.updateTitle);
 
                 var lblUpdateMessage = $("#lblUpdateMessage");
                 var lnkUpdateDownload = $("#lnkUpdateDownload");
@@ -978,13 +801,9 @@ function checkForUpdate(force) {
                 }
 
                 lnkUpdateAvailable.show();
-                $("#lnkUpdateAvailableModern").show();
-                $("#sidebarUpdateDot").show();
             }
             else {
                 lnkUpdateAvailable.hide();
-                $("#lnkUpdateAvailableModern").hide();
-                $("#sidebarUpdateDot").hide();
 
                 if (force) {
                     if (responseJSON.response.dnsServerEnableCheckForUpdate)
@@ -2669,416 +2488,9 @@ function temporaryDisableBlockingForMenu(minutes) {
     });
 }
 
-window.activeDashboardFilter = null;
-
-var CROSS_FILTER_CORRELATIONS = {
-    "Cached": {
-        matches: ["Cached", "No Error", "Cached Records"]
-    },
-    "Recursive": {
-        matches: ["Recursive", "No Error", "NX Domain"]
-    },
-    "Authoritative": {
-        matches: ["Authoritative", "No Error", "Authoritative Zones"]
-    },
-    "Dropped": {
-        matches: ["Dropped", "Server Failure", "Refused", "Blocked Zones"]
-    },
-    "Blocked": {
-        matches: ["Blocked", "Dropped", "NX Domain", "Refused", "Blocked Zones"]
-    },
-    "No Error": {
-        matches: ["No Error", "Cached", "Recursive", "Authoritative", "Cached Records"]
-    },
-    "NX Domain": {
-        matches: ["NX Domain", "Recursive", "Dropped", "Blocked Zones"]
-    },
-    "Server Failure": {
-        matches: ["Server Failure", "Dropped"]
-    },
-    "Refused": {
-        matches: ["Refused", "Dropped", "Blocked Zones"]
-    },
-    "Cached Records": {
-        matches: ["Cached Records", "Cached", "No Error"]
-    },
-    "Blocked Zones": {
-        matches: ["Blocked Zones", "Blocked", "Dropped", "NX Domain", "Refused"]
-    },
-    "Allowed Zones": {
-        matches: ["Allowed Zones", "Cached", "Recursive", "No Error"]
-    },
-    "Authoritative Zones": {
-        matches: ["Authoritative Zones", "Authoritative", "No Error"]
-    }
-};
-
-// --- Modern Line Legend Toggling & Interactive Control ---
-function toggleMainChartDataset(datasetLabel) {
-    if (!window.chartDashboardMain || !window.chartDashboardMain.data.datasets) return;
-    var normTarget = (datasetLabel || '').toLowerCase().replace(/[^a-z0-9]/g, "");
-    var labelFilters = [];
-
-    window.chartDashboardMain.data.datasets.forEach(function (ds, idx) {
-        var dsNorm = (ds.label || '').toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (dsNorm === normTarget || (normTarget === "totalqueries" && (dsNorm === "total" || dsNorm === "totalqueries"))) {
-            var meta = window.chartDashboardMain.getDatasetMeta(idx);
-            var isHidden = meta && meta.hidden != null ? meta.hidden : (ds.hidden || false);
-            if (meta) meta.hidden = !isHidden;
-            ds.hidden = !isHidden;
-        }
-        var currentMeta = window.chartDashboardMain.getDatasetMeta(idx);
-        labelFilters.push({
-            title: ds.label,
-            hidden: currentMeta && currentMeta.hidden != null ? currentMeta.hidden : (ds.hidden || false)
-        });
-    });
-
-    localStorage.setItem("chart_" + window.chartDashboardMain.id + "_legend", JSON.stringify(labelFilters));
-    window.chartDashboardMain.update(0);
-    renderMainChartLegend();
-}
-
-function renderMainChartLegend() {
-    if (!window.chartDashboardMain || !window.chartDashboardMain.data.datasets) return;
-    if (window.activeDashboardFilter) return; // Active filter manages legend indicator
-
-    var allMetrics = [
-        { label: "Total Queries", color: "#38bdf8" },
-        { label: "Cached", color: "#10b981" },
-        { label: "Recursive", color: "#6366f1" },
-        { label: "Blocked", color: "#f59e0b" },
-        { label: "Authoritative", color: "#8b5cf6" },
-        { label: "No Error", color: "#22c55e" },
-        { label: "NX Domain", color: "#ec4899" },
-        { label: "Server Failure", color: "#ef4444" },
-        { label: "Refused", color: "#a855f7" },
-        { label: "Dropped", color: "#64748b" },
-        { label: "Clients", color: "#06b6d4" }
-    ];
-
-    var html = "";
-    allMetrics.forEach(function (m) {
-        var normM = m.label.toLowerCase().replace(/[^a-z0-9]/g, "");
-        var isVisible = true;
-        for (var i = 0; i < window.chartDashboardMain.data.datasets.length; i++) {
-            var ds = window.chartDashboardMain.data.datasets[i];
-            var dsNorm = (ds.label || '').toLowerCase().replace(/[^a-z0-9]/g, "");
-            if (dsNorm === normM || (normM === "totalqueries" && (dsNorm === "total" || dsNorm === "totalqueries"))) {
-                var meta = window.chartDashboardMain.getDatasetMeta(i);
-                if (meta && meta.hidden !== null && meta.hidden !== undefined) {
-                    isVisible = !meta.hidden;
-                } else {
-                    isVisible = !ds.hidden;
-                }
-                break;
-            }
-        }
-        var pillClass = isVisible ? "legend-pill active" : "legend-pill dimmed";
-        html += '<span class="' + pillClass + '" onclick="toggleMainChartDataset(\'' + m.label + '\');" title="Click to toggle ' + m.label + ' line">' +
-                '<span class="legend-dot" style="background:' + m.color + ';"></span> ' + m.label + '</span>';
-    });
-    $("#lblDashboardChartLegend").html(html);
-}
-
-function toggleDashboardFilter(category, name) {
-    if (window.activeDashboardFilter && window.activeDashboardFilter.name === name) {
-        clearActiveDashboardFilter();
-        return;
-    }
-    window.activeDashboardFilter = { category: category, name: name };
-    applyActiveDashboardFilter();
-}
-
-function clearActiveDashboardFilter() {
-    window.activeDashboardFilter = null;
-    applyActiveDashboardFilter();
-}
-
-function applyActiveDashboardFilter() {
-    var filterBadge = $("#divActiveChartFilter");
-    if (!window.activeDashboardFilter) {
-        filterBadge.hide().empty();
-        $(".clickable-filter-row").removeClass("active-filtered-row filter-correlated filter-dimmed");
-        $("#lblFilterRecordType").text("Record: All");
-        $("#btnFilterRecordType").removeClass("active-filter");
-        $("#lblFilterProtocol").text("Protocol: All");
-        $("#btnFilterProtocol").removeClass("active-filter");
-
-        if (window.chartDashboardMain && window.lastMainChartOriginalDatasets) {
-            window.chartDashboardMain.data.datasets = JSON.parse(JSON.stringify(window.lastMainChartOriginalDatasets));
-            window.chartDashboardMain.update(0);
-        }
-        renderMainChartLegend();
-        if (window.lastDashboardResponse) {
-            updateChartFilterMenus(window.lastDashboardResponse);
-        }
-        return;
-    }
-
-    var name = window.activeDashboardFilter.name;
-    var cat = window.activeDashboardFilter.category;
-    var corr = CROSS_FILTER_CORRELATIONS[name] ? CROSS_FILTER_CORRELATIONS[name].matches : [name];
-
-    // Update filter dropdown button states
-    if (cat === "Record Type") {
-        $("#lblFilterRecordType").text("Record: " + name);
-        $("#btnFilterRecordType").addClass("active-filter");
-        $("#lblFilterProtocol").text("Protocol: All");
-        $("#btnFilterProtocol").removeClass("active-filter");
-    } else if (cat === "Protocol") {
-        $("#lblFilterProtocol").text("Protocol: " + name);
-        $("#btnFilterProtocol").addClass("active-filter");
-        $("#lblFilterRecordType").text("Record: All");
-        $("#btnFilterRecordType").removeClass("active-filter");
-    } else {
-        $("#lblFilterRecordType").text("Record: All");
-        $("#btnFilterRecordType").removeClass("active-filter");
-        $("#lblFilterProtocol").text("Protocol: All");
-        $("#btnFilterProtocol").removeClass("active-filter");
-    }
-
-    // Format rich filter chip with volume & percentage if available
-    var countInfo = "";
-    var targetRow = $('.clickable-filter-row[data-filter-name="' + name + '"]');
-    if (targetRow.length) {
-        var valText = targetRow.find(".matrix-metric-val, .breakdown-count").first().text().trim();
-        var pctText = targetRow.find(".breakdown-pct-tag").first().text().trim();
-        if (valText) {
-            countInfo = " &bull; " + valText + (pctText ? " (" + pctText + ")" : "");
-        }
-    }
-
-    filterBadge.html(
-        '<span class="filter-chip-text"><i class="fa fa-filter"></i> Active Filter: <b>' + htmlEncode(name) + '</b>' + countInfo + '</span>' +
-        '<button type="button" class="btn-clear-filter" onclick="clearActiveDashboardFilter(); return false;" title="Clear filter">&times;</button>'
-    ).show();
-
-    // Multi-card cross-highlighting & dimming across ALL cards
-    $(".clickable-filter-row").each(function () {
-        var rowName = $(this).attr("data-filter-name");
-        if (!rowName) return;
-        if (rowName.toLowerCase() === name.toLowerCase()) {
-            $(this).addClass("active-filtered-row").removeClass("filter-correlated filter-dimmed");
-        } else if (corr.some(function (c) { return c.toLowerCase() === rowName.toLowerCase(); })) {
-            $(this).addClass("filter-correlated").removeClass("active-filtered-row filter-dimmed");
-        } else {
-            $(this).addClass("filter-dimmed").removeClass("active-filtered-row filter-correlated");
-        }
-    });
-
-    // Spotlight the filtered metric on the main chart with Total reference boundary
-    if (window.chartDashboardMain && window.lastMainChartOriginalDatasets) {
-        var filteredDatasets = [];
-        var totDs = window.lastMainChartOriginalDatasets.find(function(d) {
-            var l = (d.label || '').toLowerCase().replace(/[^a-z0-9]/g, "");
-            return l === 'total' || l === 'totalqueries';
-        });
-
-        var isRecordOrProtocol = (cat === "Record Type" || cat === "Protocol");
-        var filterVolume = 0;
-        var totalQueriesCount = (window.lastDashboardResponse && window.lastDashboardResponse.stats) ? window.lastDashboardResponse.stats.totalQueries : 0;
-        if (totalQueriesCount <= 0 && totDs && totDs.data) {
-            totalQueriesCount = totDs.data.reduce(function(a, b) { return a + b; }, 0);
-        }
-
-        if (window.lastDashboardResponse) {
-            if (window.lastDashboardResponse.queryTypeChartData && window.lastDashboardResponse.queryTypeChartData.labels) {
-                var qIdx = window.lastDashboardResponse.queryTypeChartData.labels.indexOf(name);
-                if (qIdx !== -1 && window.lastDashboardResponse.queryTypeChartData.datasets && window.lastDashboardResponse.queryTypeChartData.datasets[0]) {
-                    filterVolume = window.lastDashboardResponse.queryTypeChartData.datasets[0].data[qIdx] || 0;
-                    isRecordOrProtocol = true;
-                    if (!cat || cat === "Breakdown") cat = "Record Type";
-                }
-            }
-            if (filterVolume === 0 && window.lastDashboardResponse.protocolTypeChartData && window.lastDashboardResponse.protocolTypeChartData.labels) {
-                var pIdx = window.lastDashboardResponse.protocolTypeChartData.labels.indexOf(name);
-                if (pIdx !== -1 && window.lastDashboardResponse.protocolTypeChartData.datasets && window.lastDashboardResponse.protocolTypeChartData.datasets[0]) {
-                    filterVolume = window.lastDashboardResponse.protocolTypeChartData.datasets[0].data[pIdx] || 0;
-                    isRecordOrProtocol = true;
-                    if (!cat || cat === "Breakdown") cat = "Protocol";
-                }
-            }
-        }
-
-        if (isRecordOrProtocol && filterVolume > 0 && totDs && totDs.data) {
-            var ratio = totalQueriesCount > 0 ? (filterVolume / totalQueriesCount) : 0;
-            var projectedData = totDs.data.map(function(v) { return Math.round(v * ratio); });
-            var pctStr = (ratio * 100).toFixed(1) + "%";
-            var sigColor = (cat === "Record Type") ? "#06b6d4" : "#3b82f6";
-
-            filteredDatasets.push({
-                label: (cat === "Record Type" ? "Record: " : "Protocol: ") + name + " (" + pctStr + ")",
-                data: projectedData,
-                borderColor: sigColor,
-                backgroundColor: sigColor === "#06b6d4" ? "rgba(6, 182, 212, 0.15)" : "rgba(59, 130, 246, 0.15)",
-                borderWidth: 2.5,
-                fill: true,
-                lineTension: 0.36,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                hidden: false
-            });
-
-            filteredDatasets.push({
-                label: "Total Queries (Reference)",
-                data: totDs.data.slice(),
-                borderColor: "rgba(148, 163, 184, 0.45)",
-                backgroundColor: "transparent",
-                borderWidth: 1.5,
-                borderDash: [4, 4],
-                fill: false,
-                lineTension: 0.36,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                hidden: false
-            });
-
-            $("#lblDashboardChartLegend").html(
-                '<span class="legend-pill active"><span class="legend-dot" style="background:' + sigColor + ';"></span> ' + htmlEncode(name) + ' (' + pctStr + ')</span>' +
-                '<span class="legend-pill active" style="margin-left: 10px; opacity: 0.85;"><span class="legend-dot" style="background:#94a3b8; border: 1px dashed #cbd5e1;"></span> Total Queries (Reference)</span>'
-            );
-        } else {
-            // Metric matches a direct resolution or response code dataset
-            var rawCopies = JSON.parse(JSON.stringify(window.lastMainChartOriginalDatasets));
-            var targetNorm = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-            var matchedColor = "#38bdf8";
-
-            rawCopies.forEach(function (ds) {
-                var dsNorm = (ds.label || '').toLowerCase().replace(/[^a-z0-9]/g, "");
-                var isTotal = (dsNorm === "total" || dsNorm === "totalqueries");
-                var isDirectMatch = (dsNorm === targetNorm) ||
-                                    (targetNorm === "noerror" && dsNorm === "noerror") ||
-                                    (targetNorm === "nxdomain" && dsNorm === "nxdomain") ||
-                                    (targetNorm === "cachedrecords" && dsNorm === "cached") ||
-                                    (targetNorm === "blockedzones" && dsNorm === "blocked");
-
-                if (isDirectMatch) {
-                    ds.hidden = false;
-                    ds.borderWidth = 2.5;
-                    ds.fill = true;
-                    matchedColor = ds.borderColor || "#10b981";
-                    filteredDatasets.unshift(ds);
-                } else if (isTotal) {
-                    ds.hidden = false;
-                    ds.fill = false;
-                    ds.borderWidth = 1.5;
-                    ds.borderDash = [4, 4];
-                    ds.borderColor = "rgba(148, 163, 184, 0.45)";
-                    ds.label = "Total Queries (Reference)";
-                    filteredDatasets.push(ds);
-                }
-            });
-
-            if (filteredDatasets.length === 0 && totDs) {
-                filteredDatasets.push(totDs);
-            }
-
-            $("#lblDashboardChartLegend").html(
-                '<span class="legend-pill active"><span class="legend-dot" style="background:' + matchedColor + ';"></span> ' + htmlEncode(name) + '</span>' +
-                '<span class="legend-pill active" style="margin-left: 10px; opacity: 0.85;"><span class="legend-dot" style="background:#94a3b8; border: 1px dashed #cbd5e1;"></span> Total Queries (Reference)</span>'
-            );
-        }
-
-        window.chartDashboardMain.data.datasets = filteredDatasets;
-        window.chartDashboardMain.update(0);
-    }
-}
-
-// --- Dynamic Population & Selection for Chart Header Filter Controls ---
-function updateChartFilterMenus(resp) {
-    if (!resp) return;
-
-    // 1. Populate Record Types Filter Dropdown
-    if (resp.queryTypeChartData && resp.queryTypeChartData.labels) {
-        var recLabels = resp.queryTypeChartData.labels;
-        var recCounts = (resp.queryTypeChartData.datasets && resp.queryTypeChartData.datasets[0]) ? resp.queryTypeChartData.datasets[0].data : [];
-        var totalRec = recCounts.reduce(function (a, b) { return a + b; }, 0) || 1;
-
-        var recItems = [];
-        for (var i = 0; i < recLabels.length; i++) {
-            recItems.push({ label: recLabels[i], count: recCounts[i] || 0 });
-        }
-        recItems.sort(function (a, b) { return b.count - a.count; });
-
-        var activeFilter = (window.activeDashboardFilter && window.activeDashboardFilter.category === "Record Type") ? window.activeDashboardFilter.name : "All";
-
-        var recHtml = '<li class="' + (activeFilter === "All" ? "active" : "") + '"><a href="#" onclick="selectChartRecordTypeFilter(\'All\'); return false;">' + (activeFilter === "All" ? '<i class="fa fa-check fa-fw"></i> ' : '') + 'All Record Types</a></li>';
-        recHtml += '<li role="separator" class="divider"></li>';
-
-        for (var j = 0; j < recItems.length; j++) {
-            var itm = recItems[j];
-            var pct = ((itm.count / totalRec) * 100).toFixed(1);
-            var isSel = (activeFilter.toLowerCase() === itm.label.toLowerCase());
-            recHtml += '<li class="' + (isSel ? "active" : "") + '"><a href="#" onclick="selectChartRecordTypeFilter(\'' + htmlEncode(itm.label) + '\'); return false;">' + (isSel ? '<i class="fa fa-check fa-fw"></i> ' : '') + '<b>' + htmlEncode(itm.label) + '</b> <span style="opacity: 0.65; font-size: 11px;">&bull; ' + itm.count.toLocaleString() + ' (' + pct + '%)</span></a></li>';
-        }
-        $("#menuFilterRecordType").html(recHtml);
-    }
-
-    // 2. Populate Protocols Filter Dropdown
-    if (resp.protocolTypeChartData && resp.protocolTypeChartData.labels) {
-        var protoLabels = resp.protocolTypeChartData.labels;
-        var protoCounts = (resp.protocolTypeChartData.datasets && resp.protocolTypeChartData.datasets[0]) ? resp.protocolTypeChartData.datasets[0].data : [];
-        var totalProto = protoCounts.reduce(function (a, b) { return a + b; }, 0) || 1;
-
-        var protoItems = [];
-        for (var k = 0; k < protoLabels.length; k++) {
-            protoItems.push({ label: protoLabels[k], count: protoCounts[k] || 0 });
-        }
-        protoItems.sort(function (a, b) { return b.count - a.count; });
-
-        var activeProtoFilter = (window.activeDashboardFilter && window.activeDashboardFilter.category === "Protocol") ? window.activeDashboardFilter.name : "All";
-
-        var protoHtml = '<li class="' + (activeProtoFilter === "All" ? "active" : "") + '"><a href="#" onclick="selectChartProtocolFilter(\'All\'); return false;">' + (activeProtoFilter === "All" ? '<i class="fa fa-check fa-fw"></i> ' : '') + 'All Protocols</a></li>';
-        protoHtml += '<li role="separator" class="divider"></li>';
-
-        for (var m = 0; m < protoItems.length; m++) {
-            var pItm = protoItems[m];
-            var pPct = ((pItm.count / totalProto) * 100).toFixed(1);
-            var isProtoSel = (activeProtoFilter.toLowerCase() === pItm.label.toLowerCase());
-            protoHtml += '<li class="' + (isProtoSel ? "active" : "") + '"><a href="#" onclick="selectChartProtocolFilter(\'' + htmlEncode(pItm.label) + '\'); return false;">' + (isProtoSel ? '<i class="fa fa-check fa-fw"></i> ' : '') + '<b>' + htmlEncode(pItm.label) + '</b> <span style="opacity: 0.65; font-size: 11px;">&bull; ' + pItm.count.toLocaleString() + ' (' + pPct + '%)</span></a></li>';
-        }
-        $("#menuFilterProtocol").html(protoHtml);
-    }
-}
-
-function selectChartRecordTypeFilter(recordType) {
-    if (recordType === "All") {
-        $("#lblFilterRecordType").text("Record: All");
-        $("#btnFilterRecordType").removeClass("active-filter");
-        clearActiveDashboardFilter();
-    } else {
-        $("#lblFilterRecordType").text("Record: " + recordType);
-        $("#btnFilterRecordType").addClass("active-filter");
-        $("#lblFilterProtocol").text("Protocol: All");
-        $("#btnFilterProtocol").removeClass("active-filter");
-        toggleDashboardFilter("Record Type", recordType);
-    }
-    if (window.lastDashboardResponse) {
-        updateChartFilterMenus(window.lastDashboardResponse);
-    }
-}
-
-function selectChartProtocolFilter(protocol) {
-    if (protocol === "All") {
-        $("#lblFilterProtocol").text("Protocol: All");
-        $("#btnFilterProtocol").removeClass("active-filter");
-        clearActiveDashboardFilter();
-    } else {
-        $("#lblFilterProtocol").text("Protocol: " + protocol);
-        $("#btnFilterProtocol").addClass("active-filter");
-        $("#lblFilterRecordType").text("Record: All");
-        $("#btnFilterRecordType").removeClass("active-filter");
-        toggleDashboardFilter("Protocol", protocol);
-    }
-    if (window.lastDashboardResponse) {
-        updateChartFilterMenus(window.lastDashboardResponse);
-    }
-}
-
 function updateChart(chart, data) {
     chart.data = data;
-    chart.update(0);
+    chart.update();
     loadChartLegendSettings(chart); //Reload the chart legend
 }
 
@@ -3226,7 +2638,6 @@ function refreshDashboard(hideLoader) {
 
             $("#divDashboardStatsTotalClients").text(responseJSON.response.stats.totalClients.toLocaleString());
 
-            // Zone & Cache Overview Stats
             $("#divDashboardStatsZones").text(responseJSON.response.stats.zones.toLocaleString());
             $("#divDashboardStatsCachedEntries").text(responseJSON.response.stats.cachedEntries.toLocaleString());
             $("#divDashboardStatsAllowedZones").text(responseJSON.response.stats.allowedZones.toLocaleString());
@@ -3234,156 +2645,34 @@ function refreshDashboard(hideLoader) {
             $("#divDashboardStatsAllowListZones").text(responseJSON.response.stats.allowListZones.toLocaleString());
             $("#divDashboardStatsBlockListZones").text(responseJSON.response.stats.blockListZones.toLocaleString());
 
-            // Calculated Error Metrics (ServFail + Refused + Dropped)
-            var totalErrors = responseJSON.response.stats.totalServerFailure + responseJSON.response.stats.totalRefused + responseJSON.response.stats.totalDropped;
-            $("#divDashboardStatsTotalErrors").text(totalErrors.toLocaleString());
-
-            // Calculated QPS
-            var secondsInInterval = 3600;
-            switch (type) {
-                case "lastHour": secondsInInterval = 3600; break;
-                case "lastDay": secondsInInterval = 86400; break;
-                case "lastWeek": secondsInInterval = 604800; break;
-                case "lastMonth": secondsInInterval = 2592000; break;
-                case "lastYear": secondsInInterval = 31536000; break;
-                default: secondsInInterval = 86400; break;
-            }
-            var qpsRaw = responseJSON.response.stats.totalQueries / secondsInInterval;
-            var qps = qpsRaw >= 10 ? qpsRaw.toFixed(0) : (qpsRaw >= 1 ? qpsRaw.toFixed(1) : qpsRaw.toFixed(2));
-            $("#divDashboardStatsQPS").text("~" + qps + " QPS");
-
             if (responseJSON.response.stats.totalQueries > 0) {
                 $("#divDashboardStatsTotalNoErrorPercentage").text((responseJSON.response.stats.totalNoError * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
                 $("#divDashboardStatsTotalServerFailurePercentage").text((responseJSON.response.stats.totalServerFailure * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
                 $("#divDashboardStatsTotalNxDomainPercentage").text((responseJSON.response.stats.totalNxDomain * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
                 $("#divDashboardStatsTotalRefusedPercentage").text((responseJSON.response.stats.totalRefused * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
-                $("#divDashboardStatsTotalErrorsPercentage").text((totalErrors * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
 
                 $("#divDashboardStatsTotalAuthHitPercentage").text((responseJSON.response.stats.totalAuthoritative * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
-                $("#divDashboardStatsTotalRecursionsPercentage").text((responseJSON.response.stats.totalRecursive * 100 / responseJSON.response.stats.totalQueries).toFixed(1) + "%");
+                $("#divDashboardStatsTotalRecursionsPercentage").text((responseJSON.response.stats.totalRecursive * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
                 $("#divDashboardStatsTotalCacheHitPercentage").text((responseJSON.response.stats.totalCached * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
                 $("#divDashboardStatsTotalBlockedPercentage").text((responseJSON.response.stats.totalBlocked * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
                 $("#divDashboardStatsTotalDroppedPercentage").text((responseJSON.response.stats.totalDropped * 100 / responseJSON.response.stats.totalQueries).toFixed(2) + "%");
-
-                // Analytical Matrix - Response Codes (Calculated percentages)
-                var pctMatrixNoError = (responseJSON.response.stats.totalNoError * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-                var pctMatrixNxDomain = (responseJSON.response.stats.totalNxDomain * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-                var pctMatrixServFail = (responseJSON.response.stats.totalServerFailure * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-                var pctMatrixRefused = (responseJSON.response.stats.totalRefused * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-
-                // Dynamic Descending Sort & Render for Response Codes
-                var responseCodesData = [
-                    { label: "No Error", count: responseJSON.response.stats.totalNoError, pct: pctMatrixNoError, barClass: "bar-emerald", logRcode: "NoError" },
-                    { label: "NX Domain", count: responseJSON.response.stats.totalNxDomain, pct: pctMatrixNxDomain, barClass: "bar-amber", logRcode: "NxDomain" },
-                    { label: "Server Failure", count: responseJSON.response.stats.totalServerFailure, pct: pctMatrixServFail, barClass: "bar-crimson", logRcode: "ServerFailure" },
-                    { label: "Refused", count: responseJSON.response.stats.totalRefused, pct: pctMatrixRefused, barClass: "bar-purple", logRcode: "Refused" }
-                ];
-                responseCodesData.sort(function (a, b) { return b.count - a.count; });
-                var respHtml = "";
-                for (var r = 0; r < responseCodesData.length; r++) {
-                    var itm = responseCodesData[r];
-                    var isLast = r === responseCodesData.length - 1 ? ' style="margin-bottom: 0;"' : '';
-                    respHtml += '<div class="matrix-metric-row clickable-filter-row" data-filter-name="' + itm.label + '" onclick="toggleDashboardFilter(\'Response Code\', \'' + itm.label + '\');"' + isLast + '>';
-                    respHtml += '  <div class="matrix-metric-header">';
-                    respHtml += '    <span>' + itm.label + matrixQueryLogLink(itm.label, itm.logRcode, null) + '</span>';
-                    respHtml += '    <span class="matrix-metric-val">' + itm.count.toLocaleString() + ' (' + itm.pct + '%)</span>';
-                    respHtml += '  </div>';
-                    respHtml += '  <div class="matrix-bar-track">';
-                    respHtml += '    <div class="matrix-bar-fill ' + itm.barClass + '" style="width: ' + itm.pct + '%;"></div>';
-                    respHtml += '  </div>';
-                    respHtml += '</div>';
-                }
-                $("#containerMatrixResponseCodes").html(respHtml);
-
-                // Analytical Matrix - Resolution Types (Calculated percentages)
-                var pctMatrixRecursive = (responseJSON.response.stats.totalRecursive * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-                var pctMatrixCached = (responseJSON.response.stats.totalCached * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-                var pctMatrixAuth = (responseJSON.response.stats.totalAuthoritative * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-                var pctMatrixDropped = (responseJSON.response.stats.totalDropped * 100 / responseJSON.response.stats.totalQueries).toFixed(1);
-
-                // Dynamic Descending Sort & Render for Resolution Types
-                var resolutionTypesData = [
-                    { label: "Cached", count: responseJSON.response.stats.totalCached, pct: pctMatrixCached, barClass: "bar-emerald", logType: "Cached" },
-                    { label: "Recursive", count: responseJSON.response.stats.totalRecursive, pct: pctMatrixRecursive, barClass: "bar-blue", logType: "Recursive" },
-                    { label: "Authoritative", count: responseJSON.response.stats.totalAuthoritative, pct: pctMatrixAuth, barClass: "bar-teal", logType: "Authoritative" },
-                    { label: "Dropped", count: responseJSON.response.stats.totalDropped, pct: pctMatrixDropped, barClass: "bar-slate" }
-                ];
-                resolutionTypesData.sort(function (a, b) { return b.count - a.count; });
-                var resolHtml = "";
-                for (var s = 0; s < resolutionTypesData.length; s++) {
-                    var itm = resolutionTypesData[s];
-                    var isLast = s === resolutionTypesData.length - 1 ? ' style="margin-bottom: 0;"' : '';
-                    resolHtml += '<div class="matrix-metric-row clickable-filter-row" data-filter-name="' + itm.label + '" onclick="toggleDashboardFilter(\'Resolution Type\', \'' + itm.label + '\');"' + isLast + '>';
-                    resolHtml += '  <div class="matrix-metric-header">';
-                    resolHtml += '    <span>' + itm.label + matrixQueryLogLink(itm.label, null, itm.logType) + '</span>';
-                    resolHtml += '    <span class="matrix-metric-val">' + itm.count.toLocaleString() + ' (' + itm.pct + '%)</span>';
-                    resolHtml += '  </div>';
-                    resolHtml += '  <div class="matrix-bar-track">';
-                    resolHtml += '    <div class="matrix-bar-fill ' + itm.barClass + '" style="width: ' + itm.pct + '%;"></div>';
-                    resolHtml += '  </div>';
-                    resolHtml += '</div>';
-                }
-                $("#containerMatrixResolutionTypes").html(resolHtml);
             }
             else {
                 $("#divDashboardStatsTotalNoErrorPercentage").text("0%");
                 $("#divDashboardStatsTotalServerFailurePercentage").text("0%");
                 $("#divDashboardStatsTotalNxDomainPercentage").text("0%");
                 $("#divDashboardStatsTotalRefusedPercentage").text("0%");
-                $("#divDashboardStatsTotalErrorsPercentage").text("0%");
 
                 $("#divDashboardStatsTotalAuthHitPercentage").text("0%");
                 $("#divDashboardStatsTotalRecursionsPercentage").text("0%");
                 $("#divDashboardStatsTotalCacheHitPercentage").text("0%");
                 $("#divDashboardStatsTotalBlockedPercentage").text("0%");
                 $("#divDashboardStatsTotalDroppedPercentage").text("0%");
-
-                $("#lblMatrixNoError").text("0 (0.0%)");
-                $("#barMatrixNoError").css("width", "0%");
-                $("#lblMatrixNxDomain").text("0 (0.0%)");
-                $("#barMatrixNxDomain").css("width", "0%");
-                $("#lblMatrixServFail").text("0 (0.0%)");
-                $("#barMatrixServFail").css("width", "0%");
-                $("#lblMatrixRefused").text("0 (0.0%)");
-                $("#barMatrixRefused").css("width", "0%");
-
-                $("#lblMatrixRecursive").text("0 (0.0%)");
-                $("#barMatrixRecursive").css("width", "0%");
-                $("#lblMatrixCached").text("0 (0.0%)");
-                $("#barMatrixCached").css("width", "0%");
-                $("#lblMatrixAuth").text("0 (0.0%)");
-                $("#barMatrixAuth").css("width", "0%");
-                $("#lblMatrixDropped").text("0 (0.0%)");
-                $("#barMatrixDropped").css("width", "0%");
             }
-
-            // Analytical Matrix - Zone & Cache Overview (Universal Descending Sort & Cross-Filtering)
-            var zoneStats = responseJSON.response.stats;
-            var maxZoneVal = Math.max(zoneStats.cachedEntries, zoneStats.zones, zoneStats.allowedZones, zoneStats.blockedZones, 1);
-            var zoneTelemetryData = [
-                { label: "Cached Records", count: zoneStats.cachedEntries, spanId: "divDashboardStatsTotalCachedEntries", pct: Math.round((zoneStats.cachedEntries / maxZoneVal) * 100), barClass: "bar-emerald" },
-                { label: "Blocked Zones", count: zoneStats.blockedZones, spanId: "divDashboardStatsTotalBlockedZones", pct: Math.round((zoneStats.blockedZones / maxZoneVal) * 100), barClass: "bar-amber" },
-                { label: "Allowed Zones", count: zoneStats.allowedZones, spanId: "divDashboardStatsTotalAllowed", pct: Math.round((zoneStats.allowedZones / maxZoneVal) * 100), barClass: "bar-teal" },
-                { label: "Authoritative Zones", count: zoneStats.zones, spanId: "divDashboardStatsTotalZones", pct: Math.round((zoneStats.zones / maxZoneVal) * 100), barClass: "bar-blue" }
-            ];
-            zoneTelemetryData.sort(function (a, b) { return b.count - a.count; });
-            var zoneHtml = "";
-            for (var z = 0; z < zoneTelemetryData.length; z++) {
-                var itm = zoneTelemetryData[z];
-                var isLast = z === zoneTelemetryData.length - 1 ? ' style="margin-bottom: 0;"' : '';
-                zoneHtml += '<div class="matrix-metric-row clickable-filter-row" data-filter-name="' + itm.label + '" onclick="toggleDashboardFilter(\'Zone Telemetry\', \'' + itm.label + '\');"' + isLast + '>';
-                zoneHtml += '  <div class="matrix-metric-header">';
-                zoneHtml += '    <span>' + itm.label + '</span>';
-                zoneHtml += '    <span class="matrix-metric-val"><span id="' + itm.spanId + '">' + itm.count.toLocaleString() + '</span></span>';
-                zoneHtml += '  </div>';
-                zoneHtml += '  <div class="matrix-bar-track">';
-                zoneHtml += '    <div class="matrix-bar-fill ' + itm.barClass + '" style="width: ' + Math.max(itm.pct, itm.pct > 0 ? 3 : 0) + '%;"></div>';
-                zoneHtml += '  </div>';
-                zoneHtml += '</div>';
-            }
-            $("#containerMatrixZoneTelemetry").html(zoneHtml);
 
             //main chart
+
+            //fix labels
             switch (responseJSON.response.mainChartData.labelFormat) {
                 case "MM/DD":
                 case "DD/MM":
@@ -3395,122 +2684,9 @@ function refreshDashboard(hideLoader) {
 
                 default:
                     for (var i = 0; i < responseJSON.response.mainChartData.labels.length; i++) {
-                        responseJSON.response.mainChartData.labels[i] = toDisplayMoment(responseJSON.response.mainChartData.labels[i]).format(responseJSON.response.mainChartData.labelFormat);
+                        responseJSON.response.mainChartData.labels[i] = moment(responseJSON.response.mainChartData.labels[i]).local().format(responseJSON.response.mainChartData.labelFormat);
                     }
                     break;
-            }
-
-            // Save original datasets for Power BI cross-filtering
-            window.lastMainChartOriginalDatasets = JSON.parse(JSON.stringify(responseJSON.response.mainChartData.datasets));
-
-            // Modernize main chart datasets (Unstacked Modern Telemetry Lines)
-            var isDarkTheme = document.body.classList.contains("dark-mode") || document.body.classList.contains("dark-grey-mode") || document.body.classList.contains("amber-mode");
-            var canvasElem = document.getElementById("canvasDashboardMain");
-            if (canvasElem) {
-                var ctxMain = canvasElem.getContext('2d');
-
-                var gradSky = ctxMain.createLinearGradient(0, 0, 0, 340);
-                gradSky.addColorStop(0, isDarkTheme ? 'rgba(56, 189, 248, 0.16)' : 'rgba(2, 132, 199, 0.12)');
-                gradSky.addColorStop(1, 'rgba(56, 189, 248, 0.01)');
-
-                var gradEmerald = ctxMain.createLinearGradient(0, 0, 0, 340);
-                gradEmerald.addColorStop(0, isDarkTheme ? 'rgba(16, 185, 129, 0.14)' : 'rgba(16, 185, 129, 0.10)');
-                gradEmerald.addColorStop(1, 'rgba(16, 185, 129, 0.01)');
-
-                var gradAmber = ctxMain.createLinearGradient(0, 0, 0, 340);
-                gradAmber.addColorStop(0, isDarkTheme ? 'rgba(245, 158, 11, 0.14)' : 'rgba(217, 119, 6, 0.10)');
-                gradAmber.addColorStop(1, 'rgba(245, 158, 11, 0.01)');
-
-                responseJSON.response.mainChartData.datasets.forEach(function (ds) {
-                    ds.pointRadius = 0;
-                    ds.pointHoverRadius = 5;
-                    ds.pointHitRadius = 8;
-                    ds.lineTension = 0.36;
-
-                    var lbl = (ds.label || '').toLowerCase();
-                    if (lbl === "total" || lbl === "total queries") {
-                        ds.label = "Total Queries";
-                        ds.borderColor = isDarkTheme ? "#38bdf8" : "#0284c7"; // Sky Blue
-                        ds.backgroundColor = gradSky;
-                        ds.borderWidth = 2.5;
-                        ds.fill = true;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("cache") !== -1) {
-                        ds.label = "Cached";
-                        ds.borderColor = "#10b981"; // Emerald
-                        ds.backgroundColor = gradEmerald;
-                        ds.borderWidth = 2;
-                        ds.fill = true;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("recurs") !== -1) {
-                        ds.label = "Recursive";
-                        ds.borderColor = "#6366f1"; // Indigo
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 2;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("block") !== -1) {
-                        ds.label = "Blocked";
-                        ds.borderColor = "#f59e0b"; // Amber
-                        ds.backgroundColor = gradAmber;
-                        ds.borderWidth = 2;
-                        ds.fill = true;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("author") !== -1) {
-                        ds.label = "Authoritative";
-                        ds.borderColor = "#8b5cf6"; // Violet
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("no error") !== -1 || lbl === "noerror") {
-                        ds.label = "No Error";
-                        ds.borderColor = "#22c55e"; // Vibrant Green
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("nx") !== -1) {
-                        ds.label = "NX Domain";
-                        ds.borderColor = "#ec4899"; // Pink
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("fail") !== -1) {
-                        ds.label = "Server Failure";
-                        ds.borderColor = "#ef4444"; // Crimson
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("refus") !== -1) {
-                        ds.label = "Refused";
-                        ds.borderColor = "#a855f7"; // Purple
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("drop") !== -1) {
-                        ds.label = "Dropped";
-                        ds.borderColor = "#64748b"; // Slate
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else if (lbl.indexOf("client") !== -1) {
-                        ds.label = "Clients";
-                        ds.borderColor = "#06b6d4"; // Cyan
-                        ds.backgroundColor = "transparent";
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    } else {
-                        ds.borderWidth = 1.8;
-                        ds.fill = false;
-                        ds.hidden = false;
-                    }
-                });
             }
 
             if (window.chartDashboardMain == null) {
@@ -3522,305 +2698,103 @@ function refreshDashboard(hideLoader) {
                     options: {
                         elements: {
                             line: {
-                                tension: 0.36
+                                tension: 0.2,
                             }
                         },
                         scales: {
                             yAxes: [{
-                                stacked: false,
                                 ticks: {
-                                    beginAtZero: true,
-                                    fontColor: isDarkTheme ? "#94a3b8" : "#64748b"
-                                },
-                                gridLines: {
-                                    color: isDarkTheme ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)",
-                                    zeroLineColor: isDarkTheme ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)"
-                                }
-                            }],
-                            xAxes: [{
-                                stacked: false,
-                                gridLines: {
-                                    color: isDarkTheme ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.03)",
-                                    zeroLineColor: isDarkTheme ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"
+                                    beginAtZero: true
                                 }
                             }]
                         },
-                        tooltips: {
-                            enabled: true,
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: isDarkTheme ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-                            titleFontColor: isDarkTheme ? '#f8fafc' : '#0f172a',
-                            titleFontSize: 12,
-                            titleFontStyle: '600',
-                            bodyFontColor: isDarkTheme ? '#e2e8f0' : '#334155',
-                            bodyFontSize: 11,
-                            borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
-                            borderWidth: 1,
-                            cornerRadius: 8,
-                            caretSize: 6,
-                            xPadding: 12,
-                            yPadding: 10,
-                            callbacks: {
-                                title: function (tooltipItems, data) {
-                                    if (!tooltipItems.length) return "";
-                                    var timeLabel = tooltipItems[0].xLabel || "";
-                                    var totVal = null;
-                                    tooltipItems.forEach(function (ti) {
-                                        var ds = data.datasets[ti.datasetIndex];
-                                        if (ds && (ds.label === "Total Queries" || ds.label === "Total" || ds.label === "Total Queries (Reference)")) {
-                                            totVal = Number(ti.yLabel) || 0;
-                                        }
-                                    });
-                                    return timeLabel + (totVal !== null ? "  •  Total: " + totVal.toLocaleString() + " queries" : "");
-                                },
-                                label: function (tooltipItem, data) {
-                                    var ds = data.datasets[tooltipItem.datasetIndex];
-                                    if (!ds || ds.hidden) return null;
-                                    var val = tooltipItem.yLabel != null ? Number(tooltipItem.yLabel) : 0;
-                                    return ' ' + (ds.label || '') + ': ' + val.toLocaleString();
-                                }
-                            }
-                        },
                         legend: {
-                            display: false
+                            onClick: chartLegendOnClick
                         }
                     }
                 });
+
+                loadChartLegendSettings(window.chartDashboardMain);
             }
             else {
                 updateChart(window.chartDashboardMain, responseJSON.response.mainChartData);
             }
 
-            renderMainChartLegend();
+            //query response chart
+            if (window.chartDashboardPie == null) {
+                var contextDashboardPie = document.getElementById("canvasDashboardPie").getContext('2d');
 
-            // Re-apply active cross-filtering if active
-            if (window.activeDashboardFilter && typeof applyActiveDashboardFilter === "function") {
-                applyActiveDashboardFilter();
-            }
-
-            // Save response for sub-view chart switching
-            window.lastDashboardResponse = responseJSON.response;
-            updateChartFilterMenus(responseJSON.response);
-            renderDashboardKpiGrid(responseJSON.response.stats);
-            renderDashboardStatusBar(type);
-
-            // Live QPS dynamic delta calculation
-            var nowTick = Date.now();
-            var currentTotalQ = responseJSON.response.stats.totalQueries;
-            if (window.lastAutoRefreshTime > 0 && window.lastAutoRefreshTotalQueries >= 0 && currentTotalQ >= window.lastAutoRefreshTotalQueries) {
-                var deltaQ = currentTotalQ - window.lastAutoRefreshTotalQueries;
-                var deltaS = (nowTick - window.lastAutoRefreshTime) / 1000.0;
-                if (deltaS > 0) {
-                    var liveQps = (deltaQ / deltaS).toFixed(1);
-                    $("#divDashboardStatsQPS").html('<i class="fa fa-bolt" style="color: #f59e0b; font-size:10px; margin-right: 5px;"></i> ~' + liveQps + ' QPS &nbsp;<span style="font-size:10px; opacity:0.75;">(live)</span>');
-                }
-            }
-            window.lastAutoRefreshTime = nowTick;
-            window.lastAutoRefreshTotalQueries = currentTotalQ;
-
-            // Render/Update the currently active sub-view chart
-            var currentSubView = localStorage.getItem("dashboard_chart_subview") || "traffic";
-            if (typeof renderOrUpdateSubViewChart === "function") {
-                renderOrUpdateSubViewChart(currentSubView);
-            }
-
-            // --- Modern Curated Color Palettes for Donut Charts ---
-            var QUERY_RESPONSE_COLORS = {
-                "Cached": "#10b981",        // Emerald Green (Instant Hit)
-                "Recursive": "#3b82f6",     // Electric Blue (Upstream Query)
-                "Authoritative": "#8b5cf6", // Violet (Local Zone Hit)
-                "Blocked": "#f97316",       // Vivid Amber/Orange (Filtered)
-                "Dropped": "#ef4444"        // Coral Red (Security Drop)
-            };
-
-            var RECORD_TYPE_COLORS = {
-                "A": "#3b82f6",             // Blue
-                "AAAA": "#10b981",          // Emerald
-                "HTTPS": "#8b5cf6",         // Purple
-                "TXT": "#f59e0b",           // Amber
-                "PTR": "#06b6d4",           // Cyan
-                "SRV": "#ec4899",           // Pink
-                "CNAME": "#6366f1",         // Indigo
-                "MX": "#14b8a6",            // Teal
-                "SOA": "#64748b",           // Slate
-                "NS": "#0284c7"             // Sky
-            };
-
-            var PROTOCOL_TYPE_COLORS = {
-                "Udp": "#3b82f6",           // Modern Blue
-                "Tcp": "#6366f1",           // Indigo
-                "Tls": "#10b981",           // Emerald (Encrypted DNS-over-TLS)
-                "Https": "#8b5cf6",         // Violet (Encrypted DNS-over-HTTPS)
-                "Quic": "#06b6d4"           // Cyan (DNS-over-QUIC / HTTP/3)
-            };
-
-            var FALLBACK_MODERN_PALETTE = [
-                "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#06b6d4",
-                "#ec4899", "#6366f1", "#14b8a6", "#f97316", "#64748b"
-            ];
-
-            function renderModernDonut(chartVarName, canvasId, chartData, colorMap, fallbackPalette, totalPillId, centerValId, listId, category) {
-                var canvas = document.getElementById(canvasId);
-                if (!canvas) return;
-
-                var labels = (chartData && chartData.labels) ? chartData.labels : [];
-                var rawValues = (chartData && chartData.datasets && chartData.datasets[0] && chartData.datasets[0].data) ? chartData.datasets[0].data : [];
-
-                // 1. Compute totals and items
-                var total = 0;
-                var items = [];
-                for (var i = 0; i < labels.length; i++) {
-                    var val = rawValues[i] != null ? Number(rawValues[i]) : 0;
-                    total += val;
-                    var lbl = labels[i];
-                    var col = (colorMap && colorMap[lbl]) ? colorMap[lbl] : fallbackPalette[i % fallbackPalette.length];
-                    items.push({
-                        label: lbl,
-                        value: val,
-                        color: col
-                    });
-                }
-
-                // 2. Update Header Total Pill & Donut Center Stat
-                if (totalPillId) {
-                    $("#" + totalPillId).text(total.toLocaleString() + " total");
-                }
-                if (centerValId) {
-                    var displayCenter = total >= 1000000 ? (total / 1000000).toFixed(1) + "M" : total >= 1000 ? (total / 1000).toFixed(1) + "k" : total.toLocaleString();
-                    $("#" + centerValId).text(displayCenter);
-                }
-
-                // 3. Sort items descending by traffic for the breakdown list
-                var sortedItems = items.slice().sort(function (a, b) { return b.value - a.value; });
-
-                // 4. Render Rich Breakdown List (visible at a glance, no cursor hover needed!)
-                var listHtml = "";
-                var filterCat = category || "Breakdown";
-                if (items.length === 0 || total === 0) {
-                    listHtml = "<div style=\"text-align: center; padding: 12px; font-size: 11px; opacity: 0.6;\">No activity recorded</div>";
-                } else {
-                    for (var j = 0; j < sortedItems.length; j++) {
-                        var it = sortedItems[j];
-                        var pct = total > 0 ? ((it.value / total) * 100).toFixed(1) : "0.0";
-                        listHtml += "<div class=\"breakdown-row clickable-filter-row\" data-filter-name=\"" + htmlEncode(it.label) + "\" onclick=\"toggleDashboardFilter('" + filterCat + "', '" + htmlEncode(it.label) + "');\" style=\"cursor: pointer;\">";
-                        listHtml += "  <div class=\"breakdown-header-line\">";
-                        listHtml += "    <div class=\"breakdown-label-wrap\">";
-                        listHtml += "      <span class=\"breakdown-color-dot\" style=\"background-color: " + it.color + "; color: " + it.color + ";\"></span>";
-                        listHtml += "      <span class=\"breakdown-name\" title=\"" + htmlEncode(it.label) + "\">" + htmlEncode(it.label) + "</span>";
-                        listHtml += "    </div>";
-                        listHtml += "    <div class=\"breakdown-values-wrap\">";
-                        listHtml += "      <span class=\"breakdown-count\">" + it.value.toLocaleString() + "</span>";
-                        listHtml += "      <span class=\"breakdown-pct-tag\" style=\"background: " + it.color + "20; color: " + it.color + "; border: 1px solid " + it.color + "40;\">" + pct + "%</span>";
-                        listHtml += "    </div>";
-                        listHtml += "  </div>";
-                        listHtml += "  <div class=\"breakdown-track\"><div class=\"breakdown-fill\" style=\"width: " + pct + "%; background-color: " + it.color + ";\"></div></div>";
-                        listHtml += "</div>";
-                    }
-                }
-                if (listId) {
-                    $("#" + listId).html(listHtml);
-                }
-
-                // 5. Build Doughnut Chart with crisp slice borders and hover animations
-                var isDark = document.body.classList.contains("dark-mode");
-                var sliceBorderColor = isDark ? "#1e293b" : "#ffffff";
-                var bgColors = items.map(function (x) { return x.color; });
-
-                var modernChartData = {
-                    labels: labels,
-                    datasets: [{
-                        data: rawValues,
-                        backgroundColor: bgColors,
-                        borderColor: sliceBorderColor,
-                        borderWidth: 2.5,
-                        hoverBorderColor: sliceBorderColor,
-                        hoverBorderWidth: 3
-                    }]
-                };
-
-                var chartOptions = {
-                    cutoutPercentage: 72,
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    legend: {
-                        display: false // Replaced by rich interactive breakdown list
-                    },
-                    tooltips: {
-                        callbacks: {
-                            label: function (tooltipItem, data) {
-                                var ds = data.datasets[tooltipItem.datasetIndex];
-                                var currentVal = ds.data[tooltipItem.index] || 0;
-                                var pct = total > 0 ? ((currentVal / total) * 100).toFixed(1) : "0.0";
-                                var currentLabel = data.labels[tooltipItem.index] || "";
-                                return " " + currentLabel + ": " + currentVal.toLocaleString() + " (" + pct + "%)";
-                            }
+                window.chartDashboardPie = new Chart(contextDashboardPie, {
+                    type: 'doughnut',
+                    data: responseJSON.response.queryResponseChartData,
+                    options: {
+                        legend: {
+                            onClick: chartLegendOnClick
                         }
-                    },
-                    onClick: function (evt, elements) {
-                        if (elements && elements.length > 0) {
-                            var clickedIdx = elements[0]._index;
-                            var clickedLabel = modernChartData.labels[clickedIdx];
-                            if (clickedLabel) {
-                                toggleDashboardFilter(filterCat, clickedLabel);
-                            }
-                        }
-                    },
-                    animation: {
-                        animateRotate: true,
-                        animateScale: false
                     }
-                };
+                });
 
-                if (window[chartVarName] == null) {
-                    var ctx = canvas.getContext('2d');
-                    window[chartVarName] = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: modernChartData,
-                        options: chartOptions
-                    });
-                } else {
-                    window[chartVarName].data = modernChartData;
-                    window[chartVarName].options.legend.display = false;
-                    window[chartVarName].options.cutoutPercentage = 72;
-                    window[chartVarName].options.onClick = chartOptions.onClick;
-                    window[chartVarName].options.animation = false;
-                    window[chartVarName].update(0);
-                }
+                loadChartLegendSettings(window.chartDashboardPie);
+            }
+            else {
+                updateChart(window.chartDashboardPie, responseJSON.response.queryResponseChartData);
             }
 
-            // Render all 3 distribution analytics cards with category-aware cross-filtering
-            renderModernDonut("chartDashboardPie", "canvasDashboardPie", responseJSON.response.queryResponseChartData, QUERY_RESPONSE_COLORS, FALLBACK_MODERN_PALETTE, "lblTotalResponses", "lblCenterResponsesVal", "listBreakdownResponses", "Response");
-            renderModernDonut("chartDashboardPie2", "canvasDashboardPie2", responseJSON.response.queryTypeChartData, RECORD_TYPE_COLORS, FALLBACK_MODERN_PALETTE, "lblTotalRecordTypes", "lblCenterRecordTypesVal", "listBreakdownRecordTypes", "Record Type");
-            renderModernDonut("chartDashboardPie3", "canvasDashboardPie3", responseJSON.response.protocolTypeChartData, PROTOCOL_TYPE_COLORS, FALLBACK_MODERN_PALETTE, "lblTotalProtocols", "lblCenterProtocolsVal", "listBreakdownProtocols", "Protocol");
+            //query type chart
+            if (window.chartDashboardPie2 == null) {
+                var contextDashboardPie2 = document.getElementById("canvasDashboardPie2").getContext('2d');
 
-            //top clients (with Proportional Progress Bars & Rank Badges)
+                window.chartDashboardPie2 = new Chart(contextDashboardPie2, {
+                    type: 'doughnut',
+                    data: responseJSON.response.queryTypeChartData,
+                    options: {
+                        legend: {
+                            onClick: chartLegendOnClick
+                        }
+                    }
+                });
+
+                loadChartLegendSettings(window.chartDashboardPie2);
+            }
+            else {
+                updateChart(window.chartDashboardPie2, responseJSON.response.queryTypeChartData);
+            }
+
+            //protocol type chart
+            if (window.chartDashboardPie3 == null) {
+                var contextDashboardPie3 = document.getElementById("canvasDashboardPie3").getContext('2d');
+
+                window.chartDashboardPie3 = new Chart(contextDashboardPie3, {
+                    type: 'doughnut',
+                    data: responseJSON.response.protocolTypeChartData,
+                    options: {
+                        legend: {
+                            onClick: chartLegendOnClick
+                        }
+                    }
+                });
+
+                loadChartLegendSettings(window.chartDashboardPie3);
+            }
+            else {
+                updateChart(window.chartDashboardPie3, responseJSON.response.protocolTypeChartData);
+            }
+
+            //top clients
             {
                 var tableHtmlRows;
                 var topClients = responseJSON.response.topClients;
 
                 if (topClients.length < 1) {
-                    tableHtmlRows = "<tr><td colspan=\"4\" align=\"center\" style=\"padding: 16px; opacity: 0.6;\">No Client Data Available</td></tr>";
+                    tableHtmlRows = "<tr><td colspan=\"3\" align=\"center\">No Data</td></tr>";
                 }
                 else {
                     tableHtmlRows = "";
-                    var maxClientHits = topClients[0].hits > 0 ? topClients[0].hits : 1;
 
                     for (var i = 0; i < topClients.length; i++) {
-                        var rank = i + 1;
-                        var rankClass = rank <= 3 ? " rank-" + rank : "";
-                        var percentOfMax = Math.min(100, Math.round((topClients[i].hits / maxClientHits) * 100));
-                        var clientName = htmlEncode(topClients[i].name) + (topClients[i].rateLimited ? " <span class=\"label label-warning\" style=\"font-size: 10px;\">Rate Limited</span>" : "");
-                        var hostDomain = (topClients[i].domain && topClients[i].domain !== "") ? ("<div style=\"font-size: 11px; opacity: 0.75;\">" + htmlEncode(topClients[i].domain) + "</div>") : "";
-
-                        tableHtmlRows += "<tr" + (topClients[i].rateLimited ? " style=\"color: #f59e0b;\"" : "") + ">";
-                        tableHtmlRows += "<td style=\"vertical-align: middle;\"><span class=\"rank-badge" + rankClass + "\">#" + rank + "</span></td>";
-                        tableHtmlRows += "<td style=\"word-wrap: anywhere;\"><strong>" + clientName + "</strong>" + hostDomain;
-                        tableHtmlRows += "<div class=\"stat-progress-bar\"><div class=\"stat-progress-fill fill-primary\" style=\"width: " + percentOfMax + "%;\"></div></div>";
-                        tableHtmlRows += "</td>";
-                        tableHtmlRows += "<td style=\"vertical-align: middle;\"><strong>" + topClients[i].hits.toLocaleString() + "</strong> <span style=\"font-size: 11px; opacity: 0.7;\">(" + percentOfMax + "%)</span></td>";
-                        tableHtmlRows += "<td align=\"right\" style=\"vertical-align: middle;\"><div class=\"dropdown\"><a href=\"#\" id=\"btnDashboardTopClientsRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\" style=\"color: inherit; opacity: 0.7;\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"showQueryLogs(null, '" + topClients[i].name + "', '" + node + "'); return false;\"><i class=\"fa fa-list\"></i> Show Query Logs</a></li>";
+                        tableHtmlRows += "<tr" + (topClients[i].rateLimited ? " style=\"color: orange;\"" : "") + "><td style=\"word-wrap: anywhere;\">" + htmlEncode(topClients[i].name) + (topClients[i].rateLimited ? " (rate limited)" : "") + "<br />" + htmlEncode(topClients[i].domain == "" ? "." : topClients[i].domain) + "</td><td>" + topClients[i].hits.toLocaleString();
+                        tableHtmlRows += "</td><td align=\"right\"><div class=\"dropdown\"><a href=\"#\" id=\"btnDashboardTopClientsRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"showQueryLogs(null, '" + topClients[i].name + "', '" + node + "'); return false;\">Show Query Logs</a></li>";
                         tableHtmlRows += "</ul></div></td></tr>";
                     }
                 }
@@ -3828,34 +2802,27 @@ function refreshDashboard(hideLoader) {
                 $("#tableTopClients").html(tableHtmlRows);
             }
 
-            //top domains (with Proportional Progress Bars & Rank Badges)
+            //top domains
             {
                 var tableHtmlRows;
                 var topDomains = responseJSON.response.topDomains;
 
                 if (topDomains.length < 1) {
-                    tableHtmlRows = "<tr><td colspan=\"4\" align=\"center\" style=\"padding: 16px; opacity: 0.6;\">No Domain Data Available</td></tr>";
+                    tableHtmlRows = "<tr><td colspan=\"3\" align=\"center\">No Data</td></tr>";
                 }
                 else {
                     tableHtmlRows = "";
-                    var maxDomainHits = topDomains[0].hits > 0 ? topDomains[0].hits : 1;
 
                     for (var i = 0; i < topDomains.length; i++) {
-                        var rank = i + 1;
-                        var rankClass = rank <= 3 ? " rank-" + rank : "";
-                        var percentOfMax = Math.min(100, Math.round((topDomains[i].hits / maxDomainHits) * 100));
-                        var domainName = htmlEncode(topDomains[i].nameIdn ? topDomains[i].nameIdn : (topDomains[i].name === "" ? "." : topDomains[i].name));
+                        if (topDomains[i].nameIdn == null)
+                            tableHtmlRows += "<tr><td style=\"word-wrap: anywhere;\">" + htmlEncode(topDomains[i].name == "" ? "." : topDomains[i].name) + "</td><td>" + topDomains[i].hits.toLocaleString();
+                        else
+                            tableHtmlRows += "<tr><td style=\"word-wrap: anywhere;\">" + htmlEncode(topDomains[i].nameIdn) + "</td><td>" + topDomains[i].hits.toLocaleString();
 
-                        tableHtmlRows += "<tr>";
-                        tableHtmlRows += "<td style=\"vertical-align: middle;\"><span class=\"rank-badge" + rankClass + "\">#" + rank + "</span></td>";
-                        tableHtmlRows += "<td style=\"word-wrap: anywhere;\"><strong>" + domainName + "</strong>";
-                        tableHtmlRows += "<div class=\"stat-progress-bar\"><div class=\"stat-progress-fill fill-primary\" style=\"width: " + percentOfMax + "%;\"></div></div>";
-                        tableHtmlRows += "</td>";
-                        tableHtmlRows += "<td style=\"vertical-align: middle;\"><strong>" + topDomains[i].hits.toLocaleString() + "</strong> <span style=\"font-size: 11px; opacity: 0.7;\">(" + percentOfMax + "%)</span></td>";
-                        tableHtmlRows += "<td align=\"right\" style=\"vertical-align: middle;\"><div class=\"dropdown\"><a href=\"#\" id=\"btnDashboardTopDomainsRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\" style=\"color: inherit; opacity: 0.7;\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"showQueryLogs('" + topDomains[i].name + "', null, '" + node + "'); return false;\"><i class=\"fa fa-list\"></i> Show Query Logs</a></li>";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"queryDnsServer('" + topDomains[i].name + "', null, '" + node + "'); return false;\"><i class=\"fa fa-search\"></i> Query DNS Server</a></li>";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" data-domain=\"" + htmlEncode(topDomains[i].name) + "\" onclick=\"blockDomain(this, 'btnDashboardTopDomainsRowOption'); return false;\"><i class=\"fa fa-ban\"></i> Block Domain</a></li>";
+                        tableHtmlRows += "</td><td align=\"right\"><div class=\"dropdown\"><a href=\"#\" id=\"btnDashboardTopDomainsRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"showQueryLogs('" + topDomains[i].name + "', null, '" + node + "'); return false;\">Show Query Logs</a></li>";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"queryDnsServer('" + topDomains[i].name + "', null, '" + node + "'); return false;\">Query DNS Server</a></li>";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" data-domain=\"" + htmlEncode(topDomains[i].name) + "\" onclick=\"blockDomain(this, 'btnDashboardTopDomainsRowOption'); return false;\">Block Domain</a></li>";
                         tableHtmlRows += "</ul></div></td></tr>";
                     }
                 }
@@ -3863,34 +2830,27 @@ function refreshDashboard(hideLoader) {
                 $("#tableTopDomains").html(tableHtmlRows);
             }
 
-            //top blocked domains (with Proportional Progress Bars & Rank Badges)
+            //top blocked domains
             {
                 var tableHtmlRows;
                 var topBlockedDomains = responseJSON.response.topBlockedDomains;
 
                 if (topBlockedDomains.length < 1) {
-                    tableHtmlRows = "<tr><td colspan=\"4\" align=\"center\" style=\"padding: 16px; opacity: 0.6;\">No Blocked Domain Data</td></tr>";
+                    tableHtmlRows = "<tr><td colspan=\"3\" align=\"center\">No Data</td></tr>";
                 }
                 else {
                     tableHtmlRows = "";
-                    var maxBlockedHits = topBlockedDomains[0].hits > 0 ? topBlockedDomains[0].hits : 1;
 
                     for (var i = 0; i < topBlockedDomains.length; i++) {
-                        var rank = i + 1;
-                        var rankClass = rank <= 3 ? " rank-" + rank : "";
-                        var percentOfMax = Math.min(100, Math.round((topBlockedDomains[i].hits / maxBlockedHits) * 100));
-                        var domainName = htmlEncode(topBlockedDomains[i].nameIdn ? topBlockedDomains[i].nameIdn : (topBlockedDomains[i].name === "" ? "." : topBlockedDomains[i].name));
+                        if (topBlockedDomains[i].nameIdn == null)
+                            tableHtmlRows += "<tr><td style=\"word-wrap: anywhere;\">" + htmlEncode(topBlockedDomains[i].name == "" ? "." : topBlockedDomains[i].name) + "</td><td>" + topBlockedDomains[i].hits.toLocaleString();
+                        else
+                            tableHtmlRows += "<tr><td style=\"word-wrap: anywhere;\">" + htmlEncode(topBlockedDomains[i].nameIdn) + "</td><td>" + topBlockedDomains[i].hits.toLocaleString();
 
-                        tableHtmlRows += "<tr>";
-                        tableHtmlRows += "<td style=\"vertical-align: middle;\"><span class=\"rank-badge" + rankClass + "\">#" + rank + "</span></td>";
-                        tableHtmlRows += "<td style=\"word-wrap: anywhere;\"><strong>" + domainName + "</strong>";
-                        tableHtmlRows += "<div class=\"stat-progress-bar\"><div class=\"stat-progress-fill fill-danger\" style=\"width: " + percentOfMax + "%;\"></div></div>";
-                        tableHtmlRows += "</td>";
-                        tableHtmlRows += "<td style=\"vertical-align: middle;\"><strong style=\"color: #ea580c;\">" + topBlockedDomains[i].hits.toLocaleString() + "</strong> <span style=\"font-size: 11px; opacity: 0.7;\">(" + percentOfMax + "%)</span></td>";
-                        tableHtmlRows += "<td align=\"right\" style=\"vertical-align: middle;\"><div class=\"dropdown\"><a href=\"#\" id=\"btnDashboardTopBlockedDomainsRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\" style=\"color: inherit; opacity: 0.7;\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"showQueryLogs('" + topBlockedDomains[i].name + "', null, '" + node + "'); return false;\"><i class=\"fa fa-list\"></i> Show Query Logs</a></li>";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"queryDnsServer('" + topBlockedDomains[i].name + "', null, '" + node + "'); return false;\"><i class=\"fa fa-search\"></i> Query DNS Server</a></li>";
-                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" data-domain=\"" + htmlEncode(topBlockedDomains[i].name) + "\" onclick=\"allowDomain(this, 'btnDashboardTopBlockedDomainsRowOption'); return false;\"><i class=\"fa fa-check\"></i> Allow Domain</a></li>";
+                        tableHtmlRows += "</td><td align=\"right\"><div class=\"dropdown\"><a href=\"#\" id=\"btnDashboardTopBlockedDomainsRowOption" + i + "\" class=\"dropdown-toggle\" data-toggle=\"dropdown\" aria-haspopup=\"true\" aria-expanded=\"true\"><span class=\"glyphicon glyphicon-option-vertical\" aria-hidden=\"true\"></span></a><ul class=\"dropdown-menu dropdown-menu-right\">";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"showQueryLogs('" + topBlockedDomains[i].name + "', null, '" + node + "'); return false;\">Show Query Logs</a></li>";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" onclick=\"queryDnsServer('" + topBlockedDomains[i].name + "', null, '" + node + "'); return false;\">Query DNS Server</a></li>";
+                        tableHtmlRows += "<li><a href=\"#\" data-id=\"" + i + "\" data-domain=\"" + htmlEncode(topBlockedDomains[i].name) + "\" onclick=\"allowDomain(this, 'btnDashboardTopBlockedDomainsRowOption'); return false;\">Allow Domain</a></li>";
                         tableHtmlRows += "</ul></div></td></tr>";
                     }
                 }
@@ -3902,13 +2862,8 @@ function refreshDashboard(hideLoader) {
                 divDashboardLoader.hide();
                 divDashboard.show();
             }
-            isPollingDashboard = false;
-        },
-        error: function () {
-            isPollingDashboard = false;
         },
         invalidToken: function () {
-            isPollingDashboard = false;
             showPageLogin();
         },
         objLoaderPlaceholder: divDashboardLoader,
@@ -4246,69 +3201,15 @@ function restoreSettings() {
     });
 }
 
-function updateQuickThemeIcon() {
-    var icon = $("#iconQuickTheme");
-    var label = $("#lblQuickThemeText");
-    var iconLegacy = $("#iconQuickThemeLegacy");
-    var labelLegacy = $("#lblQuickThemeTextLegacy");
-    var loginPill = $("#lblLoginThemePill");
-
-    var themeName = "Dark Blue";
-    var iconClass = "fa fa-moon-o";
-    var nextTheme = "Dark Grey";
-
-    if (document.body.classList.contains("dark-mode")) {
-        themeName = "Dark Blue";
-        iconClass = "fa fa-moon-o";
-        nextTheme = "Dark Grey";
-    } else if (document.body.classList.contains("dark-grey-mode")) {
-        themeName = "Dark Grey";
-        iconClass = "fa fa-circle";
-        nextTheme = "Light";
-    } else if (document.body.classList.contains("amber-mode")) {
-        themeName = "Amber";
-        iconClass = "fa fa-fire";
-        nextTheme = "Dark Blue";
-    } else {
-        themeName = "Light";
-        iconClass = "fa fa-sun-o";
-        nextTheme = "Dark Blue";
-    }
-
-    if (icon.length) icon.attr("class", iconClass);
-    if (label.length) label.text(themeName);
-    if (iconLegacy.length) iconLegacy.attr("class", iconClass);
-    if (labelLegacy.length) labelLegacy.text(themeName);
-    if (loginPill.length) loginPill.text(themeName);
-
-    $("#btnQuickThemeToggle").attr("title", "Theme: " + themeName + ". Click to cycle to " + nextTheme);
-    $("#btnQuickThemeToggleLegacy").attr("title", "Theme: " + themeName + ". Click to cycle to " + nextTheme);
-}
-
-function toggleQuickTheme() {
-    if (document.body.classList.contains("dark-mode")) {
-        changeTheme("dark-grey");
-    } else if (document.body.classList.contains("dark-grey-mode")) {
-        changeTheme("amber");
-    } else if (document.body.classList.contains("amber-mode")) {
-        changeTheme("light");
-    } else {
-        changeTheme("dark");
-    }
-}
-
 function initTheme() {
-    $("#btnQuickThemeToggle").show();
-
     if (window.matchMedia) {
         window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
-            const currentTheme = localStorage.getItem("theme_preference") || localStorage.getItem("theme");
+            const currentTheme = localStorage.getItem("theme");
             switch (currentTheme) {
                 case "light":
                 case "dark":
-                case "dark-grey":
                 case "amber":
-                    // user chose explicit preference, do not override
+                    //do nothing
                     break;
 
                 default:
@@ -4322,7 +3223,7 @@ function initTheme() {
         });
     }
 
-    const currentTheme = localStorage.getItem("theme_preference") || localStorage.getItem("theme");
+    const currentTheme = localStorage.getItem("theme");
     changeTheme(currentTheme);
 }
 
@@ -4336,68 +3237,48 @@ function changeTheme(newTheme) {
             applyDarkMode();
             break;
 
-        case "dark-grey":
-            applyDarkGreyMode();
-            break;
-
         case "amber":
             applyAmberMode();
             break;
 
         default:
-            newTheme = "system";
             if (window.matchMedia) {
                 if (window.matchMedia("(prefers-color-scheme: dark)").matches)
                     applyDarkMode();
                 else
                     applyLightMode();
-            } else {
-                applyLightMode();
             }
 
             break;
     }
 
     localStorage.setItem("theme", newTheme);
-    localStorage.setItem("theme_preference", newTheme);
-    updateQuickThemeIcon();
 
     if (window.chartDashboardMain) {
-        [window.chartDashboardMain, window.chartDashboardCache, window.chartDashboardClients, window.chartDashboardBlocked, window.chartDashboardHealth, window.chartDashboardPie, window.chartDashboardPie2, window.chartDashboardPie3].forEach(function (c) {
-            if (c) {
-                updateChartTheme(c);
-                c.update();
-            }
-        });
+        window.chartDashboardMain.update();
+        window.chartDashboardPie.update();
+        window.chartDashboardPie2.update();
+        window.chartDashboardPie3.update();
     }
 }
 
 function applyDarkMode() {
     document.body.classList.add("dark-mode");
-    document.body.classList.remove("light-mode", "dark-grey-mode", "amber-mode");
-    updateQuickThemeIcon();
-}
-
-function applyDarkGreyMode() {
-    document.body.classList.add("dark-grey-mode");
-    document.body.classList.remove("light-mode", "dark-mode", "amber-mode");
-    updateQuickThemeIcon();
+    document.body.classList.remove("light-mode", "amber-mode");
 }
 
 function applyLightMode() {
     document.body.classList.add("light-mode");
-    document.body.classList.remove("dark-mode", "dark-grey-mode", "amber-mode");
-    updateQuickThemeIcon();
+    document.body.classList.remove("dark-mode", "amber-mode");
 }
 
 function applyAmberMode() {
     document.body.classList.add("amber-mode");
-    document.body.classList.remove("light-mode", "dark-mode", "dark-grey-mode");
-    updateQuickThemeIcon();
+    document.body.classList.remove("light-mode", "dark-mode");
 }
 
 function showChangeThemeModal() {
-    const currentTheme = localStorage.getItem("theme_preference") || localStorage.getItem("theme");
+    const currentTheme = localStorage.getItem("theme");
     switch (currentTheme) {
         case "light":
             $("#rdChangeThemeLight").prop("checked", true);
@@ -4405,10 +3286,6 @@ function showChangeThemeModal() {
 
         case "dark":
             $("#rdChangeThemeDark").prop("checked", true);
-            break;
-
-        case "dark-grey":
-            $("#rdChangeThemeDarkGrey").prop("checked", true);
             break;
 
         case "amber":
@@ -4420,1023 +3297,5 @@ function showChangeThemeModal() {
             break;
     }
 
-    const currentLayout = localStorage.getItem("technitium_layout") || "modern";
-    if (currentLayout === "classic") {
-        $("#rdChangeLayoutClassic").prop("checked", true);
-    } else {
-        $("#rdChangeLayoutModern").prop("checked", true);
-    }
-
     $("#modalChangeTheme").modal("show");
 }
-
-// --- Modern Sidebar & App Shell Navigation System ---
-const APP_TAB_METADATA = {
-    "Dashboard": {
-        title: "Dashboard",
-        desc: "Real-time overview of your DNS server telemetry & performance",
-        legacyTab: "Dashboard",
-        refresh: function () { if (typeof refreshDashboard === "function") refreshDashboard(); }
-    },
-    "Zones": {
-        title: "DNS Zones",
-        desc: "Manage authoritative primary, secondary, stub, and forwarder zones",
-        legacyTab: "Zones",
-        refresh: function () { if (typeof refreshZones === "function") refreshZones(true); }
-    },
-    "CachedZones": {
-        title: "DNS Cache",
-        desc: "Inspect, view, and flush cached domain records and query cache",
-        legacyTab: "CachedZones",
-        refresh: function () { }
-    },
-    "AllowedZones": {
-        title: "Allowed Domains",
-        desc: "Allowlisted domain names and whitelist routing policies",
-        legacyTab: "AllowedZones",
-        refresh: function () { }
-    },
-    "BlockedZones": {
-        title: "Blocked Domains",
-        desc: "Blocklisted domain names and custom DNS filter policies",
-        legacyTab: "BlockedZones",
-        refresh: function () { }
-    },
-    "Apps": {
-        title: "DNS Apps & Plugins",
-        desc: "Manage and configure DNS server applications and extensions",
-        legacyTab: "Apps",
-        refresh: function () { if (typeof refreshApps === "function") refreshApps(); }
-    },
-    "DnsClient": {
-        title: "DNS Client & Query Tool",
-        desc: "Interactive DNS resolver tool for query diagnostics and testing",
-        legacyTab: "DnsClient",
-        refresh: function () { }
-    },
-    "Settings": {
-        title: "DNS Server Settings",
-        desc: "Configure network, forwarders, recursion, blocking, and web service",
-        legacyTab: "Settings",
-        refresh: function () { if (typeof refreshDnsSettings === "function") refreshDnsSettings(); }
-    },
-    "DhcpServer": {
-        title: "DHCP Server",
-        desc: "Manage IP allocation scopes, active client leases, and reserved addresses",
-        legacyTab: "Dhcp",
-        refresh: function () { if (typeof refreshDhcpTab === "function") refreshDhcpTab(); }
-    },
-    "Administration": {
-        title: "Server Administration",
-        desc: "User management, cluster synchronization, permissions, and active sessions",
-        legacyTab: "Admin",
-        refresh: function () { if (typeof refreshAdminTab === "function") refreshAdminTab(); }
-    },
-    "Logs": {
-        title: "Server Logs & Audit",
-        desc: "Real-time log viewer and query logging history analytics",
-        legacyTab: "Logs",
-        refresh: function () { if (typeof refreshLogsTab === "function") refreshLogsTab(); }
-    },
-    "About": {
-        title: "About Technitium DNS",
-        desc: "Server version, system environment, uptime, and licensing information",
-        legacyTab: "About",
-        refresh: function () { }
-    }
-};
-
-// Compatibility aliases for sidebar tab switching
-APP_TAB_METADATA["Dhcp"] = APP_TAB_METADATA["DhcpServer"];
-APP_TAB_METADATA["Admin"] = APP_TAB_METADATA["Administration"];
-APP_TAB_METADATA["Cache"] = APP_TAB_METADATA["CachedZones"];
-APP_TAB_METADATA["Allowed"] = APP_TAB_METADATA["AllowedZones"];
-APP_TAB_METADATA["Blocked"] = APP_TAB_METADATA["BlockedZones"];
-
-// --- URL Hash Deep-Linking & History Navigation ---
-const TAB_SLUG_MAP = {
-    "dashboard": "Dashboard",
-    "zones": "Zones",
-    "dhcp": "Dhcp",
-    "apps": "Apps",
-    "logs": "Logs",
-    "dns-client": "DnsClient",
-    "dnsclient": "DnsClient",
-    "cache": "CachedZones",
-    "cachedzones": "CachedZones",
-    "allowed": "AllowedZones",
-    "allowedzones": "AllowedZones",
-    "blocked": "BlockedZones",
-    "blockedzones": "BlockedZones",
-    "settings": "Settings",
-    "admin": "Admin",
-    "administration": "Admin",
-    "about": "About"
-};
-
-const TAB_NAME_TO_SLUG = {
-    "Dashboard": "dashboard",
-    "Zones": "zones",
-    "Dhcp": "dhcp",
-    "DhcpServer": "dhcp",
-    "Apps": "apps",
-    "Logs": "logs",
-    "DnsClient": "dns-client",
-    "Cache": "cache",
-    "CachedZones": "cache",
-    "Allowed": "allowed",
-    "AllowedZones": "allowed",
-    "Blocked": "blocked",
-    "BlockedZones": "blocked",
-    "Settings": "settings",
-    "Admin": "admin",
-    "Administration": "admin",
-    "About": "about"
-};
-
-function getTabFromHash(hash) {
-    if (!hash) return null;
-    var clean = hash.replace(/^#/, "").toLowerCase().trim();
-    return TAB_SLUG_MAP[clean] || null;
-}
-
-function updateUrlHashForTab(tabName) {
-    var slug = TAB_NAME_TO_SLUG[tabName] || tabName.toLowerCase();
-    var newHash = "#" + slug;
-    if (window.location.hash !== newHash) {
-        if (window.history && window.history.pushState) {
-            window.history.pushState({ tab: tabName }, "", newHash);
-        } else {
-            window.location.hash = newHash;
-        }
-    }
-}
-
-function handleUrlHashNavigation() {
-    if ($("#pageLogin").is(":visible")) return;
-    var targetTab = getTabFromHash(window.location.hash);
-    if (targetTab) {
-        switchAppTab(targetTab, false);
-    } else if (!window.location.hash || window.location.hash === "#" || window.location.hash === "#dashboard") {
-        switchAppTab("Dashboard", false);
-    }
-}
-
-window.addEventListener("popstate", handleUrlHashNavigation);
-window.addEventListener("hashchange", handleUrlHashNavigation);
-
-$(document).on("shown.bs.tab", "#pageMain .nav-tabs a", function (e) {
-    var href = $(e.target).attr("href");
-    if (href && href.indexOf("mainPanelTabPane") !== -1) {
-        var legacy = href.replace("#mainPanelTabPane", "");
-        var matchedTab = null;
-        for (var k in APP_TAB_METADATA) {
-            if (APP_TAB_METADATA[k].legacyTab === legacy) {
-                matchedTab = k;
-                break;
-            }
-        }
-        if (matchedTab) {
-            markActiveNav(matchedTab);
-            updateAppBreadcrumbs(matchedTab);
-            updateUrlHashForTab(matchedTab);
-            if (matchedTab === "Dashboard") {
-                isDashboardTabActive = true;
-                startAutoRefreshTimer();
-            } else {
-                isDashboardTabActive = false;
-                stopAutoRefreshTimer();
-            }
-        }
-    }
-});
-
-function switchAppTab(tabName, updateUrl) {
-    const meta = APP_TAB_METADATA[tabName];
-    if (!meta) return;
-
-    // 1. Activate sidebar nav item
-    markActiveNav(tabName);
-
-    // 2. Trigger corresponding legacy tab click
-    $("#mainPanelTabList" + meta.legacyTab + " a").tab("show");
-    if (meta.refresh) {
-        meta.refresh();
-    }
-
-    if (tabName === "Dashboard") {
-        isDashboardTabActive = true;
-        startAutoRefreshTimer();
-    } else {
-        isDashboardTabActive = false;
-        stopAutoRefreshTimer();
-    }
-
-    // 3. Update topbar breadcrumbs and page titles
-    updateAppBreadcrumbs(tabName);
-
-    // 4. Update URL Hash for direct deep-linking & history
-    if (updateUrl !== false) {
-        updateUrlHashForTab(tabName);
-    }
-
-    // 5. Auto-collapse on small screens
-    if ($(window).width() <= 768) {
-        $("#appSidebar").removeClass("expanded");
-        $("body").removeClass("sidebar-open");
-    }
-}
-
-function updateAppBreadcrumbs(tabName) {
-    const meta = APP_TAB_METADATA[tabName];
-    if (!meta) return;
-
-    $("#lblBreadcrumbSection").text(meta.title);
-    $("#lblAppPageTitle").text(meta.title);
-    $("#lblAppPageDesc").text(meta.desc);
-}
-
-function toggleSidebar() {
-    var sidebar = $("#appSidebar");
-    if ($(window).width() <= 768) {
-        sidebar.toggleClass("expanded");
-        $("body").toggleClass("sidebar-open", sidebar.hasClass("expanded"));
-    } else {
-        sidebar.toggleClass("collapsed");
-        var isCollapsed = sidebar.hasClass("collapsed");
-        localStorage.setItem("sidebar_collapsed", isCollapsed);
-        $("#iconSidebarCollapse").attr("class", isCollapsed ? "fa fa-chevron-right" : "fa fa-chevron-left");
-    }
-}
-
-function refreshCurrentAppTab() {
-    var icon = $("#iconTopbarRefresh");
-    icon.addClass("fa-spin");
-    setTimeout(function () { icon.removeClass("fa-spin"); }, 1000);
-
-    var activeSidebar = $(".sidebar-nav-item.active");
-    if (activeSidebar.length > 0) {
-        var id = activeSidebar.attr("id");
-        if (id) {
-            var tabName = id.replace("sidebarNavItem", "");
-            var meta = APP_TAB_METADATA[tabName];
-            if (meta && meta.refresh) {
-                meta.refresh();
-                return;
-            }
-        }
-    }
-    if (typeof refreshDashboard === "function") {
-        refreshDashboard();
-    }
-}
-
-// --- Layout Switcher System (Modern vs Classic) ---
-function initLayout() {
-    const savedLayout = localStorage.getItem("technitium_layout") || "modern";
-    applyLayout(savedLayout);
-}
-
-function setLayout(layout) {
-    localStorage.setItem("technitium_layout", layout);
-    applyLayout(layout);
-}
-
-function toggleLayout() {
-    const isClassic = document.body.classList.contains("layout-classic");
-    const nextLayout = isClassic ? "modern" : "classic";
-    setLayout(nextLayout);
-}
-
-function applyLayout(layout) {
-    if (layout === "classic") {
-        document.body.classList.add("layout-classic");
-        document.body.classList.remove("layout-modern");
-        $("#rdChangeLayoutClassic").prop("checked", true);
-        $("#lblQuickLayoutText").text("Classic");
-        $("#lblQuickLayoutTextLegacy").text("Classic");
-        $("#lblLoginLayoutPill").text("Classic");
-        $("#lblMnuLayoutText").text("Modern");
-        $("#lblMnuLayoutTextSidebar").text("Modern");
-        $("#lblMnuLayoutTextTopbar").text("Modern");
-        $("#btnQuickLayoutToggle").attr("title", "Layout: Classic. Click to switch to Modern");
-        $("#btnQuickLayoutToggleLegacy").attr("title", "Layout: Classic. Click to switch to Modern");
-
-        $("#header").show();
-        $("#appSidebar").hide();
-        $("#appTopBar").hide();
-        $("#appShell").show();
-        if (!$("#pageLogin").is(":visible")) {
-            $("#pageMain").show();
-        }
-    } else {
-        // Modern layout is default
-        document.body.classList.add("layout-modern");
-        document.body.classList.remove("layout-classic");
-        $("#rdChangeLayoutModern").prop("checked", true);
-        $("#lblQuickLayoutText").text("Modern");
-        $("#lblQuickLayoutTextLegacy").text("Modern");
-        $("#lblLoginLayoutPill").text("Modern");
-        $("#lblMnuLayoutText").text("Classic");
-        $("#lblMnuLayoutTextSidebar").text("Classic");
-        $("#lblMnuLayoutTextTopbar").text("Classic");
-        $("#btnQuickLayoutToggle").attr("title", "Layout: Modern (Default). Click to switch to Classic");
-        $("#btnQuickLayoutToggleLegacy").attr("title", "Layout: Modern (Default). Click to switch to Classic");
-
-        $("#header").hide();
-        $("#appShell").css("display", "flex").show();
-        $("#appSidebar").show();
-        $("#appTopBar").show();
-        if (!$("#pageLogin").is(":visible")) {
-            $("#pageMain").show();
-        }
-    }
-
-    // Sync active tab between sidebar navigation and classic horizontal tabs
-    var activeSidebar = $(".sidebar-nav-item.active");
-    if (activeSidebar.length) {
-        var id = activeSidebar.attr("id");
-        if (id) {
-            var tabName = id.replace("sidebarNavItem", "");
-            var meta = APP_TAB_METADATA[tabName];
-            if (meta) {
-                $("#mainPanelTabList" + meta.legacyTab + " a").tab("show");
-            }
-        }
-    }
-}
-
-// --- Dashboard Chart Sub-View Switcher & Auto-Refresh System ---
-function renderOrUpdateSubViewChart(viewName) {
-    if (!viewName) viewName = localStorage.getItem("dashboard_chart_subview") || "traffic";
-    if (!window.lastDashboardResponse) return;
-
-    var resp = window.lastDashboardResponse;
-    var isDark = document.body.classList.contains("dark-mode") || document.body.classList.contains("dark-grey-mode");
-
-    if (viewName === "traffic") {
-        if (window.chartDashboardMain) {
-            window.chartDashboardMain.resize();
-            window.chartDashboardMain.update(0);
-        }
-    } else if (viewName === "cache") {
-        var canvas = document.getElementById("canvasDashboardCache");
-        if (!canvas) return;
-
-        var cacheDatasets = [];
-        if (resp.mainChartData && resp.mainChartData.datasets) {
-            resp.mainChartData.datasets.forEach(function (ds) {
-                var label = ds.label ? ds.label.toLowerCase() : "";
-                if (label.indexOf("cache") !== -1 || label.indexOf("recurs") !== -1 || label.indexOf("author") !== -1 || label.indexOf("block") !== -1) {
-                    var copy = $.extend(true, {}, ds);
-                    if (label.indexOf("cache") !== -1) {
-                        copy.borderColor = "#10b981";
-                        copy.backgroundColor = "rgba(16, 185, 129, 0.15)";
-                    } else if (label.indexOf("recurs") !== -1) {
-                        copy.borderColor = "#3b82f6";
-                        copy.backgroundColor = "rgba(59, 130, 246, 0.15)";
-                    } else if (label.indexOf("author") !== -1) {
-                        copy.borderColor = "#8b5cf6";
-                        copy.backgroundColor = "rgba(139, 92, 246, 0.15)";
-                    } else if (label.indexOf("block") !== -1) {
-                        copy.borderColor = "#f97316";
-                        copy.backgroundColor = "rgba(249, 115, 22, 0.15)";
-                    }
-                    cacheDatasets.push(copy);
-                }
-            });
-        }
-
-        var cacheChartData = {
-            labels: resp.mainChartData ? resp.mainChartData.labels : [],
-            datasets: cacheDatasets
-        };
-
-        if (window.chartDashboardCache == null) {
-            var ctx = canvas.getContext('2d');
-            window.chartDashboardCache = new Chart(ctx, {
-                type: 'line',
-                data: cacheChartData,
-                options: createDashboardChartOptions()
-            });
-        } else {
-            window.chartDashboardCache.data = cacheChartData;
-            updateChartTheme(window.chartDashboardCache);
-            window.chartDashboardCache.resize();
-            window.chartDashboardCache.update(0);
-        }
-    } else if (viewName === "clients") {
-        var canvas = document.getElementById("canvasDashboardClients");
-        if (!canvas) return;
-
-        var topClients = resp.topClients ? resp.topClients.slice(0, 10) : [];
-        var clientLabels = topClients.map(function (c) { return c.name || "Unknown"; });
-        var clientHits = topClients.map(function (c) { return c.hits || 0; });
-
-        var clientsChartData = {
-            labels: clientLabels,
-            datasets: [{
-                label: "Client Queries",
-                data: clientHits,
-                backgroundColor: "rgba(59, 130, 246, 0.85)",
-                borderColor: "#3b82f6",
-                borderWidth: 1.5,
-                hoverBackgroundColor: "#2563eb"
-            }]
-        };
-
-        if (window.chartDashboardClients == null) {
-            var ctx = canvas.getContext('2d');
-            window.chartDashboardClients = new Chart(ctx, {
-                type: 'horizontalBar',
-                data: clientsChartData,
-                options: createHorizontalBarChartOptions("Client Queries")
-            });
-        } else {
-            window.chartDashboardClients.data = clientsChartData;
-            updateChartTheme(window.chartDashboardClients);
-            window.chartDashboardClients.resize();
-            window.chartDashboardClients.update(0);
-        }
-    } else if (viewName === "blocked") {
-        var canvas = document.getElementById("canvasDashboardBlocked");
-        if (!canvas) return;
-
-        var topBlocked = resp.topBlockedDomains ? resp.topBlockedDomains.slice(0, 10) : [];
-        var blockedLabels = topBlocked.map(function (b) { return b.name || "Unknown"; });
-        var blockedHits = topBlocked.map(function (b) { return b.hits || 0; });
-
-        var blockedChartData = {
-            labels: blockedLabels,
-            datasets: [{
-                label: "Blocked Requests",
-                data: blockedHits,
-                backgroundColor: "rgba(249, 115, 22, 0.85)",
-                borderColor: "#f97316",
-                borderWidth: 1.5,
-                hoverBackgroundColor: "#ea580c"
-            }]
-        };
-
-        if (window.chartDashboardBlocked == null) {
-            var ctx = canvas.getContext('2d');
-            window.chartDashboardBlocked = new Chart(ctx, {
-                type: 'horizontalBar',
-                data: blockedChartData,
-                options: createHorizontalBarChartOptions("Blocked Requests")
-            });
-        } else {
-            window.chartDashboardBlocked.data = blockedChartData;
-            updateChartTheme(window.chartDashboardBlocked);
-            window.chartDashboardBlocked.resize();
-            window.chartDashboardBlocked.update(0);
-        }
-    } else if (viewName === "health") {
-        var canvas = document.getElementById("canvasDashboardHealth");
-        if (!canvas) return;
-
-        var healthDatasets = [];
-        if (resp.mainChartData && resp.mainChartData.datasets) {
-            resp.mainChartData.datasets.forEach(function (ds) {
-                var label = ds.label ? ds.label.toLowerCase() : "";
-                if (label.indexOf("fail") !== -1 || label.indexOf("nx") !== -1 || label.indexOf("refus") !== -1 || label.indexOf("drop") !== -1) {
-                    var copy = $.extend(true, {}, ds);
-                    if (label.indexOf("fail") !== -1) {
-                        copy.borderColor = "#ef4444";
-                        copy.backgroundColor = "rgba(239, 68, 68, 0.15)";
-                    } else if (label.indexOf("nx") !== -1) {
-                        copy.borderColor = "#f59e0b";
-                        copy.backgroundColor = "rgba(245, 158, 11, 0.15)";
-                    } else if (label.indexOf("refus") !== -1) {
-                        copy.borderColor = "#06b6d4";
-                        copy.backgroundColor = "rgba(6, 182, 212, 0.15)";
-                    } else if (label.indexOf("drop") !== -1) {
-                        copy.borderColor = "#64748b";
-                        copy.backgroundColor = "rgba(100, 116, 139, 0.15)";
-                    }
-                    healthDatasets.push(copy);
-                }
-            });
-        }
-
-        var healthChartData = {
-            labels: resp.mainChartData ? resp.mainChartData.labels : [],
-            datasets: healthDatasets
-        };
-
-        if (window.chartDashboardHealth == null) {
-            var ctx = canvas.getContext('2d');
-            window.chartDashboardHealth = new Chart(ctx, {
-                type: 'line',
-                data: healthChartData,
-                options: createDashboardChartOptions()
-            });
-        } else {
-            window.chartDashboardHealth.data = healthChartData;
-            updateChartTheme(window.chartDashboardHealth);
-            window.chartDashboardHealth.resize();
-            window.chartDashboardHealth.update(0);
-        }
-    }
-}
-
-function switchDashboardChartView(viewName) {
-    if (!viewName) viewName = "traffic";
-    var cap = viewName.charAt(0).toUpperCase() + viewName.slice(1);
-
-    $(".btn-chart-subview").removeClass("active");
-    $("#btnSubView" + cap).addClass("active");
-
-    var titleHtml = '<i class="fa fa-area-chart"></i> DNS Query & Block Traffic Activity';
-
-    if (viewName === "traffic") {
-        $("#lblDashboardChartTitle").html(titleHtml);
-        if (window.activeDashboardFilter) {
-            applyActiveDashboardFilter();
-        } else {
-            renderMainChartLegend();
-        }
-    } else {
-        var legendHtml = "";
-        if (viewName === "cache") {
-            titleHtml = '<i class="fa fa-bolt" style="color: #10b981;"></i> Cache Efficiency & Resolution Activity';
-            legendHtml = '<span class="legend-dot" style="background:#10b981;"></span> Cached <span class="legend-dot" style="background:#3b82f6; margin-left: 14px;"></span> Recursive <span class="legend-dot" style="background:#8b5cf6; margin-left: 14px;"></span> Authoritative <span class="legend-dot" style="background:#f97316; margin-left: 14px;"></span> Blocked';
-        } else if (viewName === "clients") {
-            titleHtml = '<i class="fa fa-users" style="color: #3b82f6;"></i> Top Active DNS Clients';
-            legendHtml = '<span class="legend-dot" style="background:#3b82f6;"></span> Query Volume by Client IP / Host';
-        } else if (viewName === "blocked") {
-            titleHtml = '<i class="fa fa-shield" style="color: #f97316;"></i> Top Blocked Domains & Ad Trackers';
-            legendHtml = '<span class="legend-dot" style="background:#f97316;"></span> Intercepted Requests';
-        } else if (viewName === "health") {
-            titleHtml = '<i class="fa fa-heartbeat" style="color: #ef4444;"></i> Resolver Health & Query Errors';
-            legendHtml = '<span class="legend-dot" style="background:#ef4444;"></span> Server Failure <span class="legend-dot" style="background:#f59e0b; margin-left: 14px;"></span> NX Domain <span class="legend-dot" style="background:#06b6d4; margin-left: 14px;"></span> Refused <span class="legend-dot" style="background:#64748b; margin-left: 14px;"></span> Dropped';
-        }
-        $("#lblDashboardChartTitle").html(titleHtml);
-        $("#lblDashboardChartLegend").html(legendHtml);
-    }
-
-    $(".chart-view-wrap").hide().removeClass("active");
-    $("#chartWrap" + cap).show().addClass("active");
-
-    localStorage.setItem("dashboard_chart_subview", viewName);
-
-    renderOrUpdateSubViewChart(viewName);
-}
-
-function setAutoRefreshInterval(cadence) {
-    if (typeof cadence === "string") {
-        if (cadence === "3s" || cadence === "3000") cadence = 3000;
-        else if (cadence === "10s" || cadence === "10000") cadence = 10000;
-        else if (cadence === "off" || cadence === "0" || cadence === "manual") cadence = 0;
-        else cadence = 10000;
-    } else if (typeof cadence === "number") {
-        if (cadence !== 3000 && cadence !== 10000 && cadence !== 0) cadence = 10000;
-    } else {
-        cadence = 10000;
-    }
-
-    autoRefreshInterval = cadence;
-    localStorage.setItem("dashboard_auto_refresh_cadence", cadence);
-
-    var statusText = "Normal (10s)";
-    var beaconClass = "live-pulse-beacon";
-
-    $("#itemAutoRefresh3s, #itemAutoRefresh3sLegacy").removeClass("active");
-    $("#itemAutoRefresh10s, #itemAutoRefresh10sLegacy").removeClass("active");
-    $("#itemAutoRefreshOff, #itemAutoRefreshOffLegacy").removeClass("active");
-
-    if (cadence === 3000) {
-        statusText = "Live (3s)";
-        beaconClass = "live-pulse-beacon fast";
-        $("#itemAutoRefresh3s, #itemAutoRefresh3sLegacy").addClass("active");
-    } else if (cadence === 10000) {
-        statusText = "Normal (10s)";
-        beaconClass = "live-pulse-beacon";
-        $("#itemAutoRefresh10s, #itemAutoRefresh10sLegacy").addClass("active");
-    } else {
-        statusText = "Manual (Off)";
-        beaconClass = "live-pulse-beacon paused";
-        $("#itemAutoRefreshOff, #itemAutoRefreshOffLegacy").addClass("active");
-    }
-
-    $("#lblAutoRefreshStatus, #lblAutoRefreshStatusLegacy").text(statusText);
-    $("#livePulseBeacon, #livePulseBeaconLegacy").attr("class", beaconClass);
-
-    restartAutoRefreshTimer();
-}
-
-function startAutoRefreshTimer() {
-    stopAutoRefreshTimer();
-    if (autoRefreshInterval <= 0) return;
-    if (!isDashboardTabActive || document.hidden) return;
-
-    autoRefreshTimer = setInterval(function () {
-        onAutoRefreshTick();
-    }, autoRefreshInterval);
-}
-
-function stopAutoRefreshTimer() {
-    if (autoRefreshTimer !== null) {
-        clearInterval(autoRefreshTimer);
-        autoRefreshTimer = null;
-    }
-}
-
-function restartAutoRefreshTimer() {
-    stopAutoRefreshTimer();
-    startAutoRefreshTimer();
-}
-
-function onAutoRefreshTick() {
-    if (isPollingDashboard) return;
-    if (!isDashboardTabActive || document.hidden) {
-        stopAutoRefreshTimer();
-        return;
-    }
-
-    // Flash beacon subtly to indicate active data sync
-    var beacons = $("#livePulseBeacon, #livePulseBeaconLegacy");
-    beacons.addClass("flash");
-    setTimeout(function () { beacons.removeClass("flash"); }, 400);
-
-    if (typeof refreshDashboard === "function") {
-        isPollingDashboard = true;
-        refreshDashboard(true);
-    }
-}
-
-function createDashboardChartOptions() {
-    var isDark = document.body.classList.contains("dark-mode") || document.body.classList.contains("dark-grey-mode");
-    return {
-        elements: {
-            line: {
-                tension: 0.35
-            }
-        },
-        scales: {
-            yAxes: [{
-                ticks: {
-                    beginAtZero: true,
-                    fontColor: isDark ? "#94a3b8" : "#64748b"
-                },
-                gridLines: {
-                    color: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"
-                }
-            }],
-            xAxes: [{
-                ticks: {
-                    fontColor: isDark ? "#94a3b8" : "#64748b"
-                },
-                gridLines: {
-                    color: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)"
-                }
-            }]
-        },
-        legend: {
-            onClick: chartLegendOnClick
-        }
-    };
-}
-
-function createHorizontalBarChartOptions(datasetLabel) {
-    var isDark = document.body.classList.contains("dark-mode") || document.body.classList.contains("dark-grey-mode");
-    return {
-        responsive: true,
-        legend: {
-            display: false
-        },
-        scales: {
-            xAxes: [{
-                ticks: {
-                    beginAtZero: true,
-                    callback: function (val) {
-                        return Number(val).toLocaleString();
-                    },
-                    fontColor: isDark ? "#94a3b8" : "#64748b"
-                },
-                gridLines: {
-                    color: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)"
-                }
-            }],
-            yAxes: [{
-                ticks: {
-                    fontColor: isDark ? "#cbd5e1" : "#334155"
-                },
-                gridLines: {
-                    display: false
-                }
-            }]
-        },
-        tooltips: {
-            callbacks: {
-                label: function (tooltipItem, data) {
-                    return " " + (datasetLabel || "Queries") + ": " + Number(tooltipItem.xLabel).toLocaleString();
-                }
-            }
-        }
-    };
-}
-
-function updateChartTheme(chart) {
-    if (!chart || !chart.options || !chart.options.scales) return;
-    var isDark = document.body.classList.contains("dark-mode") || document.body.classList.contains("dark-grey-mode");
-    var gridColor = isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)";
-    var tickColor = isDark ? "#94a3b8" : "#64748b";
-
-    if (chart.options.scales.xAxes) {
-        chart.options.scales.xAxes.forEach(function (axis) {
-            if (axis.gridLines) axis.gridLines.color = isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)";
-            if (axis.ticks) axis.ticks.fontColor = tickColor;
-        });
-    }
-    if (chart.options.scales.yAxes) {
-        chart.options.scales.yAxes.forEach(function (axis) {
-            if (axis.gridLines && axis.gridLines.display !== false) axis.gridLines.color = gridColor;
-            if (axis.ticks) axis.ticks.fontColor = isDark ? "#cbd5e1" : "#334155";
-        });
-    }
-}
-
-// --- Sentinel-Labs: Display Time Zone (Browser / IST / UTC) ---
-// Server timestamps are UTC; this only changes how the web console renders them.
-var DISPLAY_TZ_OPTIONS = {
-    local: { offset: null, name: "Browser local time" },
-    ist: { offset: 330, name: "India Standard Time (UTC+05:30)" },
-    utc: { offset: 0, name: "Coordinated Universal Time" }
-};
-
-function getDisplayTimezone() {
-    var tz = localStorage.getItem("display_timezone");
-    return DISPLAY_TZ_OPTIONS.hasOwnProperty(tz) ? tz : "local";
-}
-
-function getDisplayTzLabel() {
-    switch (getDisplayTimezone()) {
-        case "ist": return "IST";
-        case "utc": return "UTC";
-        default: return moment().format("[UTC]Z");
-    }
-}
-
-function toDisplayMoment(ts) {
-    var offset = DISPLAY_TZ_OPTIONS[getDisplayTimezone()].offset;
-    var m = moment(ts);
-    return (offset === null) ? m.local() : m.utcOffset(offset);
-}
-
-function formatDisplayTime(ts, fmt) {
-    return toDisplayMoment(ts).format(fmt || "YYYY-MM-DD HH:mm:ss");
-}
-
-// Interprets a datetime-local input value in the display time zone and returns ISO UTC.
-function displayInputToIso(val) {
-    if ((val == null) || (val === ""))
-        return "";
-
-    var offset = DISPLAY_TZ_OPTIONS[getDisplayTimezone()].offset;
-    if (offset === null)
-        return moment(val).toISOString();
-
-    return moment.utc(val).subtract(offset, "minutes").toISOString();
-}
-
-function syncDisplayTimezoneControls() {
-    var tz = getDisplayTimezone();
-    $("#rdDisplayTz" + (tz === "ist" ? "Ist" : (tz === "utc" ? "Utc" : "Local"))).prop("checked", true);
-    $("#optQueryLogsDisplayTz").val(tz);
-    $("#lblQueryLogsTzSuffix").text("(" + getDisplayTzLabel() + ")");
-    $(".display-tz-hint").text(getDisplayTzLabel());
-}
-
-function setDisplayTimezone(tz) {
-    if (!DISPLAY_TZ_OPTIONS.hasOwnProperty(tz))
-        tz = "local";
-
-    localStorage.setItem("display_timezone", tz);
-    syncDisplayTimezoneControls();
-    convertLogViewerTimestamps();
-
-    if ($("#mainPanelTabPaneDashboard").hasClass("active") && (typeof refreshDashboard === "function"))
-        refreshDashboard(true);
-
-    if ($("#logsTabPaneQueryLogs").hasClass("active") && $("#divQueryLogsTable").is(":visible") && (typeof queryLogs === "function"))
-        queryLogs();
-}
-
-// View Logs text files carry "[yyyy-MM-dd HH:mm:ss UTC]" prefixes written by the server.
-function convertLogViewerTimestamps() {
-    var pre = document.getElementById("preLogViewerBody");
-    if (pre == null)
-        return;
-
-    var current = pre.textContent;
-    if (current !== pre._tzOutput)
-        pre._tzRaw = current;
-
-    if (!pre._tzRaw)
-        return;
-
-    var label = getDisplayTzLabel();
-    var output = (getDisplayTimezone() === "utc") ? pre._tzRaw : pre._tzRaw.replace(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC\]/gm, function (match, utcText) {
-        return "[" + formatDisplayTime(moment.utc(utcText, "YYYY-MM-DD HH:mm:ss")) + " " + label + "]";
-    });
-
-    if (output !== current) {
-        pre._tzOutput = output;
-        pre.textContent = output;
-    }
-    else {
-        pre._tzOutput = current;
-    }
-}
-
-// --- Sentinel-Labs: App shell navigation sync ---
-function markActiveNav(tabName) {
-    $(".sidebar-nav-item").removeClass("active").children("a").removeAttr("aria-current");
-    $("#sidebarNavItem" + tabName).addClass("active").children("a").attr("aria-current", "page");
-}
-
-function syncAppShellToTab(tabName) {
-    if (!APP_TAB_METADATA[tabName])
-        return;
-
-    markActiveNav(tabName);
-    updateAppBreadcrumbs(tabName);
-    updateUrlHashForTab(tabName);
-
-    isDashboardTabActive = (tabName === "Dashboard");
-    if (isDashboardTabActive)
-        startAutoRefreshTimer();
-    else
-        stopAutoRefreshTimer();
-
-    if ($(window).width() <= 768) {
-        $("#appSidebar").removeClass("expanded");
-        $("body").removeClass("sidebar-open");
-    }
-}
-
-// --- Sentinel-Labs: Rich dashboard (KPI grid & server status bar) ---
-function matrixQueryLogLink(label, rcode, responseType) {
-    if ((rcode == null) && (responseType == null))
-        return "";
-
-    var args = "null, null, null, " + (rcode == null ? "null" : "'" + rcode + "'") + ", " + (responseType == null ? "null" : "'" + responseType + "'");
-    return ' <a href="#" class="matrix-log-link" title="View ' + label + ' query logs" aria-label="View ' + label + ' query logs" onclick="event.stopPropagation(); showQueryLogs(' + args + '); return false;"><i class="fa fa-external-link"></i></a>';
-}
-
-function renderDashboardKpiGrid(stats) {
-    var grid = $("#divDashboardKpiGrid");
-    if ((grid.length === 0) || (stats == null))
-        return;
-
-    var total = stats.totalQueries || 0;
-    var tiles = [
-        { label: "No Error", value: stats.totalNoError, cls: "kpi-emerald", icon: "fa-check-circle", action: "showQueryLogs(null, null, null, 'NoError')" },
-        { label: "NX Domain", value: stats.totalNxDomain, cls: "kpi-amber", icon: "fa-question-circle", action: "showQueryLogs(null, null, null, 'NxDomain')" },
-        { label: "Server Failure", value: stats.totalServerFailure, cls: "kpi-crimson", icon: "fa-exclamation-triangle", action: "showQueryLogs(null, null, null, 'ServerFailure')" },
-        { label: "Refused", value: stats.totalRefused, cls: "kpi-purple", icon: "fa-ban", action: "showQueryLogs(null, null, null, 'Refused')" },
-        { label: "Dropped", value: stats.totalDropped, cls: "kpi-slate", icon: "fa-filter", action: null },
-        { label: "Authoritative", value: stats.totalAuthoritative, cls: "kpi-teal", icon: "fa-certificate", action: "showQueryLogs(null, null, null, null, 'Authoritative')" },
-        { label: "Recursive", value: stats.totalRecursive, cls: "kpi-blue", icon: "fa-sitemap", action: "showQueryLogs(null, null, null, null, 'Recursive')" },
-        { label: "Cached", value: stats.totalCached, cls: "kpi-emerald", icon: "fa-bolt", action: "showQueryLogs(null, null, null, null, 'Cached')" },
-        { label: "Blocked", value: stats.totalBlocked, cls: "kpi-orange", icon: "fa-shield", action: "showQueryLogs(null, null, null, null, 'Blocked')" },
-        { label: "Clients", value: stats.totalClients, cls: "kpi-sky", icon: "fa-users", action: "showTopStats('TopClients', 1000)", noPct: true }
-    ];
-
-    var html = "";
-    for (var i = 0; i < tiles.length; i++) {
-        var t = tiles[i];
-        var value = t.value || 0;
-        var pct = (!t.noPct && total > 0) ? (value * 100 / total) : null;
-        var tag = t.action ? "a" : "div";
-        var attrs = t.action ? ' href="#" onclick="' + t.action + '; return false;" title="' + (t.noPct ? "View top clients" : "View " + t.label + " query logs") + '"' : ' title="' + t.label + ' (not stored in query logs)"';
-
-        html += "<" + tag + ' class="dash-kpi-tile ' + t.cls + '"' + attrs + ">";
-        html += '<div class="dash-kpi-head"><i class="fa ' + t.icon + '" aria-hidden="true"></i> ' + t.label + "</div>";
-        html += '<div class="dash-kpi-value">' + value.toLocaleString() + "</div>";
-        html += '<div class="dash-kpi-foot">' + (pct === null ? (t.noPct ? "unique clients" : "&nbsp;") : pct.toFixed(pct > 0 && pct < 1 ? 2 : 1) + "% of queries") + "</div>";
-        html += '<div class="dash-kpi-bar"><span style="width: ' + (pct === null ? 0 : Math.min(100, pct)).toFixed(1) + '%;"></span></div>';
-        html += "</" + tag + ">";
-    }
-
-    grid.html(html);
-}
-
-var dashboardBlockingState = { fetchedAt: 0, loading: false, enabled: null, till: null };
-
-function fetchDashboardBlockingState() {
-    if (dashboardBlockingState.loading || (sessionData == null) || (sessionData.info == null))
-        return;
-
-    var perms = sessionData.info.permissions;
-    if ((perms == null) || (perms.Settings == null) || !perms.Settings.canView)
-        return;
-
-    dashboardBlockingState.loading = true;
-
-    // Silent background call: HTTPRequest() would raise an alert on failure.
-    $.ajax({
-        type: "GET",
-        url: "api/settings/get",
-        headers: { "Authorization": "Bearer " + sessionData.token },
-        dataType: "json",
-        cache: false,
-        success: function (response) {
-            dashboardBlockingState.loading = false;
-            dashboardBlockingState.fetchedAt = Date.now();
-
-            if ((response == null) || (response.status !== "ok"))
-                return;
-
-            dashboardBlockingState.enabled = response.response.enableBlocking;
-            dashboardBlockingState.till = response.response.temporaryDisableBlockingTill || null;
-            renderDashboardStatusBar($("input[name=rdStatType]:checked").val());
-        },
-        error: function () {
-            dashboardBlockingState.loading = false;
-            dashboardBlockingState.fetchedAt = Date.now();
-        }
-    });
-}
-
-function dashboardBlockingAction(action) {
-    switch (action) {
-        case "pause":
-            temporaryDisableBlockingForMenu(5);
-            break;
-
-        case "enable":
-            enableBlocking();
-            break;
-    }
-
-    dashboardBlockingState.fetchedAt = 0;
-    setTimeout(fetchDashboardBlockingState, 1500);
-}
-
-function renderDashboardStatusBar(rangeType) {
-    var bar = $("#divDashboardStatusBar");
-    if (bar.length === 0)
-        return;
-
-    var info = ((sessionData != null) && (sessionData.info != null)) ? sessionData.info : {};
-    var rangeLabels = { lastHour: "Last hour", lastDay: "Last 24 hours", lastWeek: "Last 7 days", lastMonth: "Last 30 days", lastYear: "Last 12 months", custom: "Custom range" };
-    var canModify = (info.permissions != null) && (info.permissions.Settings != null) && info.permissions.Settings.canModify;
-    var html = "";
-
-    var state = dashboardBlockingState;
-    if (state.enabled === true) {
-        html += '<span class="dash-status-pill status-ok"><span class="dash-status-dot"></span> Blocking active';
-        if (canModify)
-            html += ' <button type="button" class="dash-status-action" onclick="dashboardBlockingAction(\'pause\');" title="Temporarily disable blocking for 5 minutes">Pause 5m</button>';
-        html += "</span>";
-    }
-    else if (state.enabled === false) {
-        var tillText = state.till ? " until " + formatDisplayTime(state.till, "HH:mm") + " " + getDisplayTzLabel() : "";
-        html += '<span class="dash-status-pill status-warn"><span class="dash-status-dot"></span> Blocking ' + (state.till ? "paused" + tillText : "disabled");
-        if (canModify)
-            html += ' <button type="button" class="dash-status-action" onclick="dashboardBlockingAction(\'enable\');" title="Enable blocking now">Enable</button>';
-        html += "</span>";
-    }
-
-    if (info.dnsServerDomain)
-        html += '<span class="dash-status-pill"><i class="fa fa-server" aria-hidden="true"></i> ' + htmlEncode(info.dnsServerDomain) + "</span>";
-
-    if (info.version)
-        html += '<span class="dash-status-pill"><i class="fa fa-tag" aria-hidden="true"></i> v' + htmlEncode(info.version) + "</span>";
-
-    if (info.uptimestamp)
-        html += '<span class="dash-status-pill" title="Server started ' + formatDisplayTime(info.uptimestamp) + " " + getDisplayTzLabel() + '"><i class="fa fa-clock-o" aria-hidden="true"></i> Up ' + moment(info.uptimestamp).fromNow(true) + "</span>";
-
-    html += '<span class="dash-status-pill"><i class="fa fa-calendar" aria-hidden="true"></i> ' + (rangeLabels[rangeType] || "Custom range") + "</span>";
-    html += '<a href="#" class="dash-status-pill dash-status-link" onclick="showChangeThemeModal(); return false;" title="Change display time zone"><i class="fa fa-refresh" aria-hidden="true"></i> Updated ' + formatDisplayTime(new Date(), "HH:mm:ss") + " " + getDisplayTzLabel() + "</a>";
-
-    bar.html(html);
-
-    if ((Date.now() - state.fetchedAt) > 60000)
-        fetchDashboardBlockingState();
-}
-
-$(function () {
-    syncDisplayTimezoneControls();
-
-    // logs.js loads after main.js, so wrap showQueryLogs once all scripts are ready.
-    if (typeof showQueryLogs === "function" && !showQueryLogs._appShellSynced) {
-        var upstreamShowQueryLogs = showQueryLogs;
-        showQueryLogs = function () {
-            upstreamShowQueryLogs.apply(this, arguments);
-            syncAppShellToTab("Logs");
-        };
-        showQueryLogs._appShellSynced = true;
-    }
-
-    var pre = document.getElementById("preLogViewerBody");
-    if ((pre != null) && window.MutationObserver)
-        new MutationObserver(convertLogViewerTimestamps).observe(pre, { childList: true, characterData: true, subtree: true });
-
-    $(document).on("keydown", function (e) {
-        if ((e.key === "Escape") && $("body").hasClass("sidebar-open"))
-            toggleSidebar();
-    });
-});

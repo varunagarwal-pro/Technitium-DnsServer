@@ -25,14 +25,9 @@ The table below catalogs every file modified or added by Sentinel-Labs on top of
 | Component / File Path | Customization Purpose & Mechanism |
 |---|---|
 | [`DnsServerCore/Dns/DnsServer.cs`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/Dns/DnsServer.cs) | **CNAME / ANAME Hop Isolation:** Each hop gets a fresh `ResolverContext`, preventing premature `MaxOutboundRequests` exhaustion. **DoT/TCP resilience (C1):** resolver-capacity drops and TCP QPM-limited requests receive per-query SERVFAIL instead of closing the stream; intentional silent-drop policies remain unchanged. **DoT visibility (C2):** TLS authentication failures, handshake I/O errors, and timeouts are globally limited to one log event per 10 seconds and include client IP, SNI, and reason. |
-| [`DnsServerCore/www/css/main.css`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/css/main.css) | **Enterprise Glassmorphism UI:** Complete modern design system (`--glass-radius`, backdrop-filters, custom pill tabs, floating date-range toolbar, donut chart visual analytics, and `.enterprise-hero-grid`). Clickable hero cards use `.hero-clickable` / `.hero-link`. Upstream's classic `.stats-panel` is not rendered (`.stats-panel { display: none; }`). |
-| [`DnsServerCore/www/css/dark-grey-mode.css`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/css/dark-grey-mode.css) | **Dark Grey / Charcoal Glass Theme:** Dedicated enterprise dark palette distinct from the default slate blue dark mode. |
-| [`DnsServerCore/www/index.html`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/index.html) | **Modern Dual-Layout Dashboard:** Provides collapsible left sidebar, top action bar, Hero Stat Cards that replace upstream's `.stats-panel`, and a theme switch modal (System, Dark Blue, Dark Grey, Light, Amber, Classic Layout toggle and Display Time Zone). Sentinel-Labs-only IDs: `divDashboardStatusBar`, `divDashboardKpiGrid`, `appSidebarBackdrop`, `rdDisplayTzLocal/Ist/Utc`, `optQueryLogsDisplayTz`, `lblQueryLogsTzSuffix`. **Cache busting:** the app CSS/JS links in `<head>` carry `?v=sl-YYYYMMDD`; change the stamp in every UI release so browsers and Cloudflare fetch the new files (the server already sends `Cache-Control: no-cache`, but an open tab or edge cache can still show old code). The hero cards open filtered query logs through upstream's `showQueryLogs(domain, clientIp, node, rcode, responseType)` (Total, Blocked, ServFail, Refused, Cached, Recursive, Authoritative; Dropped is not a valid filter). A hidden `display: none` block keeps the upstream stats IDs that the hero cards do not show (NoError, NxDomain, per-item percentages), so upstream `main.js` updates never hit missing elements. Every element ID must stay unique. **Menu order:** the Modern sidebar (`.sidebar-nav-list`) and Classic tabs (`#mainPanelTabList*`) both use Dashboard first, About last, and the rest alphabetical (Administration, Allowed, Apps, Blocked, Cache, DHCP, DNS Client, Logs, Settings, Zones). Put any new upstream tab in its alphabetical place in both lists. |
-| [`DnsServerCore/www/js/main.js`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/js/main.js) | **Layout & Theme Switcher Engine:** Functions `setLayout(mode)`, `applyLayout(mode)`, `toggleLayout()` and theme persistence in `localStorage`. **URL hash deep-linking:** portal sections are addressable by URL hash, and browser back/forward navigation works. Stats counters are written by upstream's code to the standard `divDashboardStats*` IDs only. No `*Legacy` IDs exist. |
-| [`DnsServerCore/www/js/main.js`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/js/main.js) (Sentinel-Labs block at end of file) | **Display Time Zone:** Browser / IST / UTC option (`localStorage` key `display_timezone`, set in Display Preferences or the Query Logs filter bar). `formatDisplayTime()` / `toDisplayMoment()` render server UTC timestamps; `displayInputToIso()` reads the From/To inputs in the chosen zone. A `MutationObserver` on `#preLogViewerBody` rewrites `[yyyy-MM-dd HH:mm:ss UTC]` prefixes in View Logs (display only, server data unchanged). **Rich dashboard:** `renderDashboardStatusBar()` (blocking state with Pause 5m / Enable, server, version, uptime, range, last update) and `renderDashboardKpiGrid()` (10 tiles, each opening the matching query logs). Blocking state is read silently from `api/settings/get` at most once a minute, and only if the user can view Settings. **Matrix rows** link to query logs (`matrixQueryLogLink()`). **Nav sync:** `showQueryLogs()` is wrapped so jumping to Query Logs also updates the sidebar, `aria-current`, breadcrumbs, URL hash and the dashboard auto-refresh timer. Quick theme cycle includes Amber. |
-| [`DnsServerCore/www/js/logs.js`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/js/logs.js) | **Merge surface (upstream file, 5 lines changed):** in `queryLogs()` and `exportQueryLogsCsv()`, From/To use `displayInputToIso(...)` instead of `moment(...).toISOString()`; the Timestamp column uses `formatDisplayTime(...)` instead of `moment(...).local().format(...)`. Re-apply these if upstream changes those lines. |
-| [`DnsServerCore/www/css/main.css`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/css/main.css) ("Sentinel-Labs UI enhancements" section at end of file) | Mobile off-canvas sidebar with backdrop (Esc / tap closes) and no horizontal overflow at phone widths in either layout; slimmer Classic heading and top padding; the duplicate auto-refresh control is hidden in Modern; empty cluster dropdowns are hidden; equal-height donut cards (`.donut-row`); KPI / status-bar / matrix-link styles for all themes; Amber styling for the Modern sidebar and top bar; `:focus-visible` outlines and `prefers-reduced-motion` support. |
-| [`DnsServerCore/DnsServerCore.csproj`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/DnsServerCore.csproj) | Preserves `dark-grey-mode.css` content packaging (`CopyToOutputDirectory=PreserveNewest`). |
+| [`DnsServerCore/www/`](file:///D:/Sentinel-Labs/Technitium-DnsServer/DnsServerCore/www/) | **Stock Upstream UI (Pristine):** Maintained as pure, untouched stock upstream to guarantee 100% conflict-free upstream git merges and baseline compatibility. Default fallback interface. |
+| [`sentinel-webui/`](file:///D:/Sentinel-Labs/Technitium-DnsServer/sentinel-webui/) | **Sentinel-Labs Enterprise Glassmorphism UI:** Standalone, decoupled home of our modern design system (`--glass-radius`, backdrop-filters, custom pill tabs, floating date-range toolbar, donut chart visual analytics, `.enterprise-hero-grid`, Modern/Classic dual layout, and IST/UTC display timezone selector). Deployed to `/opt/technitium/sentinel-webui/` via `DNS_SERVER_WEB_SERVICE_WWW_FOLDER_PATH`. |
+| [`technitium-webui/`](file:///D:/Sentinel-Labs/technitium-webui/) | **Modern React 19 SPA Console:** Alternative decoupled administration console (`byGarcia/technitium-console`). Features dedicated Clients page, 2-second live streaming, Command Palette (Ctrl+K), and cluster sync views. Deployed to `/opt/technitium/technitium-console/`. |
 | [`Sentinel-Core/.../technitium-advanced-blocking/src/`](../Sentinel-Core/code/services/technitium-advanced-blocking/src/) (formerly `Apps/AdvancedBlockingApp/`) | **Enhanced AdBlock Engine:** AdGuard/AdBlock syntax support, CNAME cloaking unmasking, partitioned indexes, and async dnsrewrite. B1–B4 add endpoint suffix/wildcard precedence, bounded regex matching, opt-in decision logging, and snapshot reloads that reuse unchanged regexes and preserve active snapshots on read/build failures. AdBlock rules and group-wide `$badfilter` cancellation keys are published together; each request captures one policy for allowance, blocking, and CNAME post-processing. The shared `DnsRequestContext` associates a verified unsigned TSIG request with its original signed datagram before app callbacks, preserving policy identity without changing authentication or the post-processor's incoming-request contract. Duplicate regexes are removed within each inline array or individual feed. |
 
 ---
@@ -141,6 +136,38 @@ ssh -p 41022 -i $key "vexa@${ip}" "dig +short @127.0.0.1 google.com; rm -f /tmp/
   | `maxConcurrentResolutionsPerCore` | 100 | 100 | 100 |
 
   `serveStale = false` remains the previously documented cache setting. Re-verify all live values after every upgrade.
+
+### 🎛️ 3-Tier WebUI Switching Architecture & Deployment
+Technitium DNS Server v15.5+ natively supports the environment variable `DNS_SERVER_WEB_SERVICE_WWW_FOLDER_PATH`. This allows our fleet to seamlessly hot-switch between three distinct WebUI tiers without modifying the core server binary or conflicting with upstream git updates:
+
+| Tier | WebUI Name | Local Location | Remote Server Path | Systemd Drop-in Setting | Characteristics |
+|---|---|---|---|---|---|
+| **Tier 1** | **Stock Upstream UI** | `DnsServerCore/www/` | `/opt/technitium/dns/www/` | *(Unset / default)* | Pure stock upstream console; active fallback when no variable is set. 100% zero-conflict on git updates. |
+| **Tier 2** | **Sentinel Glassmorphism UI** | `sentinel-webui/` | `/opt/technitium/sentinel-webui/` | `DNS_SERVER_WEB_SERVICE_WWW_FOLDER_PATH=/opt/technitium/sentinel-webui` | Enterprise Glassmorphism design system, Modern/Classic dual layout, KPI hero cards, status bar, and native IST display timezone. |
+| **Tier 3** | **Technitium Console React SPA** | `technitium-webui/` | `/opt/technitium/technitium-console/` | `DNS_SERVER_WEB_SERVICE_WWW_FOLDER_PATH=/opt/technitium/technitium-console` | React 19 + TypeScript + Vite SPA (`byGarcia/technitium-console`). Dedicated Clients page, 2-second live streaming, Command Palette (Ctrl+K), and cluster sync views. |
+
+#### 🔄 Switching Tiers on Fleet Nodes
+Create or update `/etc/systemd/system/dns.service.d/console.conf` (keeps GC tuning in `override.conf` isolated):
+
+```bash
+# Switch to Tier 2: Sentinel Glassmorphism UI
+sudo tee /etc/systemd/system/dns.service.d/console.conf > /dev/null << 'EOF'
+[Service]
+Environment="DNS_SERVER_WEB_SERVICE_WWW_FOLDER_PATH=/opt/technitium/sentinel-webui"
+EOF
+sudo systemctl daemon-reload && sudo systemctl restart dns.service
+
+# Switch to Tier 3: Modern React SPA
+sudo tee /etc/systemd/system/dns.service.d/console.conf > /dev/null << 'EOF'
+[Service]
+Environment="DNS_SERVER_WEB_SERVICE_WWW_FOLDER_PATH=/opt/technitium/technitium-console"
+EOF
+sudo systemctl daemon-reload && sudo systemctl restart dns.service
+
+# Switch back to Tier 1: Pristine Stock Upstream UI
+sudo rm -f /etc/systemd/system/dns.service.d/console.conf
+sudo systemctl daemon-reload && sudo systemctl restart dns.service
+```
 
 ## 5. 🔁 Forward-Confirmed Reverse DNS (Auto PTR + Wild IP Architecture)
 
