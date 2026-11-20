@@ -1,0 +1,74 @@
+# CodeRabbit Master Review Configuration — Technitium-DnsServer
+# Reference: Docs/CodeRabbit.md
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+version: 2
+language: "en-US"
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  changed_files_summary: true
+  collapse_walkthrough: true
+  poem: false
+  in_progress_fortune: false
+  review_status: true
+  commit_status: true
+  enable_prompt_for_ai_agents: true
+
+  slop_detection:
+    enabled: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - "master"
+      - "main"
+      - "upstream-mirror"
+
+  finishing_touches:
+    autofix:
+      enabled: true
+    fix_ci:
+      enabled: true
+    resolve_merge_conflict:
+      enabled: true
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+  tools:
+    ast-grep:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+
+  path_filters:
+    - "!**/bin/**"
+    - "!**/obj/**"
+    - "!**/*.dll"
+    - "!**/*.exe"
+    - "!**/*.pdb"
+    - "!**/temp/**"
+
+  path_instructions:
+    - path: "DnsServerCore/**"
+      instructions: |
+        Preserve high-throughput non-blocking asynchronous socket networking.
+        Ensure all custom Sentinel-Labs patches adhere to upstream code contracts to maintain clean upstream sync.
+
+knowledge_base:
+  web_search:
+    enabled: true
+  learnings:
+    scope: "auto"
+
+chat:
+  auto_reply: true
