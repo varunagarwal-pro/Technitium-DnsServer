@@ -1,7 +1,7 @@
 # 🎯 Architectural Plan: Modern Telemetry Lines & Full Record/Protocol Filtering
 
-> **Target Project:** `Sentinel-Core` (`Technitium DNS Server UI`)  
-> **Staging Path:** `D:\Sentinel-Labs\Technitium-DnsServer\DnsServerCore\www\`  
+> **Target Project:** `SentinelCore` (`Technitium DNS Server UI`)  
+> **Staging Path:** `D:\SentinelLabs\Technitium-DNSServer\DnsServerCore\www\`  
 > **Target Nodes:** Mumbai (`80.225.252.237`), Phoenix (`129.146.39.180`)  
 > **Rule Compliance:** Rule 3 (Universal Approval Gate), Rule 4 (WHAT/WHY Announcements), Rule 8 (Confined to temp/), Rule 11 (Artifact Planning Mandate), Rule 12 (Traceability)
 
@@ -69,11 +69,11 @@ When a user selects a Record Type (e.g. `Record: A` - 10,711 queries, 79.7%) or 
 ---
 
 ## 🚀 3. Files to Update
-- [`www/js/main.js`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/js/main.js):
+- [`www/js/main.js`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/js/main.js):
   - Configure modern unstacked line styling and interactive legend click handlers.
   - Implement time-series projection for Record Types and Protocols in `applyActiveDashboardFilter()`.
   - Fix tooltip callbacks and dynamic legend indicator updates.
-- [`www/index.html`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/index.html):
+- [`www/index.html`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/index.html):
   - Ensure `#lblDashboardChartLegend` supports interactive clicking and dynamic state indicators.
-- [`www/css/main.css`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/css/main.css):
+- [`www/css/main.css`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/css/main.css):
   - Styling for interactive legend pills (`.legend-pill.active`, `.legend-pill.dimmed`).

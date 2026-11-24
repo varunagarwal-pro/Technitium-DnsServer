@@ -1,7 +1,7 @@
 # 🏛️ Master Implementation Specification: Complete Dashboard Modernization & Telemetry Suite
 
-> **Target Project:** `Sentinel-Core` (`Technitium DNS Server UI`)  
-> **Staging Path:** `DD:\Sentinel-Labs\Technitium-DnsServer\DnsServerCore\www\`  
+> **Target Project:** `SentinelCore` (`Technitium DNS Server UI`)  
+> **Staging Path:** `DD:\SentinelLabs\Technitium-DNSServer\DnsServerCore\www\`  
 > **Target Nodes:** Mumbai (`80.225.252.237`), Phoenix (`129.146.39.180`)  
 > **Rule Compliance:** Anti-Silent-Omission Guardrail (Rule 12), Zero Root Pollution (Rule 8), Multi-Node Concurrency (Rule 7)
 
@@ -84,8 +84,8 @@
 ---
 
 ## 2. Target Files & Delivery
-- [`index.html`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/index.html)
-- [`main.css`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/css/main.css)
-- [`dark-mode.css`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/css/dark-mode.css) (and theme siblings)
-- [`js/main.js`](file:///D:/Sentinel-Labs/Sentinel-Core/temp/pr-staging/DnsServer/DnsServerCore/www/js/main.js)
+- [`index.html`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/index.html)
+- [`main.css`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/css/main.css)
+- [`dark-mode.css`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/css/dark-mode.css) (and theme siblings)
+- [`js/main.js`](file:///D:/SentinelLabs/SentinelCore/temp/pr-staging/DnsServer/DnsServerCore/www/js/main.js)
 - Multi-node deployment via 64-bit PowerShell RunspacePool (`temp/deploy_fleet_dns_update.ps1`) to Mumbai and Phoenix.

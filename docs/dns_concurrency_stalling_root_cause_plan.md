@@ -45,7 +45,7 @@ graph TD
 ## 🔬 2. Deep Technical Breakdown of the 3 Compounding Defects
 
 ### Defect 1: The Severe .NET CLR Degradation (`override.conf`)
-In `D:\Sentinel-Labs\Sentinel-Core\temp\deploy_fleet_technitium_hardening.ps1`, the previous agent deployed the following systemd drop-in override across Mumbai, Phoenix, and Oregon:
+In `D:\SentinelLabs\SentinelCore\temp\deploy_fleet_technitium_hardening.ps1`, the previous agent deployed the following systemd drop-in override across Mumbai, Phoenix, and Oregon:
 
 ```ini
 [Service]
@@ -287,7 +287,7 @@ In strict compliance with **Rule 7 (64-Bit Architecture, Multi-Threaded, Multi-C
 | :---: | :--- | :--- | :--- |
 | **Phase 1** | **Restore Multi-Core Server GC in Systemd**<br>- Remove `DOTNET_gcServer=0`, `DOTNET_GCConserveMemory=9`, `DOTNET_GCLOHCompact=1`<br>- Enable `DOTNET_gcServer=1`<br>- Keep safe memory caps (`MemoryMax=1200M`) | Mumbai, Phoenix, Oregon (`/etc/systemd/system/dns.service.d/override.conf`) | Rule 7: Multi-Core / Parallel Processing Standard |
 | **Phase 2** | **Tune Technitium DNS Cache & Concurrency via API**<br>- `cacheMaximumEntries`: `200000`<br>- `resolverConcurrency`: `4`<br>- `resolverTimeout`: `3000`<br>- `serveStale`: `true` | Mumbai, Phoenix, Oregon (`http://127.0.0.1:5380/api/settings/set`) | Eliminates cold-cache churn and `resolver limits reached` |
-| **Phase 3** | **Fix CNAME Cloaking & Rule Matching in `AdvancedBlockingApp`**<br>- Patch `PostProcessAsync` to respect allowlists and bypass trusted root zones<br>- Remove nested synchronous timeouts<br>- Recompile `AdvancedBlockingApp.dll` Release binary | `D:\Sentinel-Labs\Sentinel-Core\temp\pr-staging\DnsServer\Apps\AdvancedBlockingApp` | Zero False-Positives, High-Speed Response |
+| **Phase 3** | **Fix CNAME Cloaking & Rule Matching in `AdvancedBlockingApp`**<br>- Patch `PostProcessAsync` to respect allowlists and bypass trusted root zones<br>- Remove nested synchronous timeouts<br>- Recompile `AdvancedBlockingApp.dll` Release binary | `D:\SentinelLabs\SentinelCore\temp\pr-staging\DnsServer\Apps\AdvancedBlockingApp` | Zero False-Positives, High-Speed Response |
 | **Phase 4** | **Parallel Fleet Deployment & Verification**<br>- Deploy DLL and configs across Mumbai, Phoenix, Oregon concurrently via multi-threaded PowerShell RunspacePool<br>- Execute automated cold-query and cached-query latency benchmarks | Mumbai, Phoenix, Oregon | Rule 7 & Fleet Parallel Protocol |
 
 ---

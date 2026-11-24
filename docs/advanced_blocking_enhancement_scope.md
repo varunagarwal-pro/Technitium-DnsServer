@@ -1,8 +1,8 @@
 # 🛡️ Technitium AdvancedBlockingApp — Scope of Enhancement Analysis
 
-> **Target Project:** `D:\Sentinel-Labs\Technitium-DnsServer\Apps\AdvancedBlockingApp\`  
+> **Target Project:** `D:\SentinelLabs\Technitium-DNSServer\Apps\AdvancedBlockingApp\`  
 > **Reference Baseline:** `temp\Adguard\AdGuardHome-master` (`urlfilter` & `internal/filtering`)  
-> **Author:** Sentinel-Labs Senior Implementation Engineer  
+> **Author:** SentinelLabs Senior Implementation Engineer  
 > **Date:** September 2026  
 
 ---
@@ -140,7 +140,7 @@ However, comparing this implementation directly against **AdGuard Home's rule en
 
 ## 🎯 4. Recommendation & Upstream Feasibility
 
-For submitting enhancements back to upstream Technitium (`Technitium-DnsServer`):
+For submitting enhancements back to upstream Technitium (`Technitium-DNSServer`):
 
 1. **Phase 1 (Immediate / High Value for Upstream PR):**
    - **Fix Negated `$dnstype=~TYPE`**: Critical correctness fix for existing parser.

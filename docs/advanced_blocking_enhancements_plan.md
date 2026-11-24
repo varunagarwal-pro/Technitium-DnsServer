@@ -1,9 +1,9 @@
 # 📋 Implementation Plan: Enterprise-Grade AdGuard Rule Enhancements for AdvancedBlockingApp
 
-> **Target Repository:** `D:\Sentinel-Labs\Technitium-DnsServer` & `temp\DnsServer-master`  
+> **Target Repository:** `D:\SentinelLabs\Technitium-DNSServer` & `temp\DnsServer-master`  
 > **Target Project:** `Apps\AdvancedBlockingApp\AdvancedBlockingApp.csproj`  
 > **Status:** Pending User Approval Gate (Rule 3)  
-> **Author:** Sentinel-Labs Senior Implementation Engineer  
+> **Author:** SentinelLabs Senior Implementation Engineer  
 > **Date:** September 2026  
 
 ---

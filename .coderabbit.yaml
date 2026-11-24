@@ -1,4 +1,4 @@
-# CodeRabbit Master Review Configuration — Technitium-DnsServer
+# CodeRabbit Master Review Configuration — Technitium-DNSServer
 # Reference: Docs/CodeRabbit.md
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 version: 2
@@ -62,7 +62,7 @@ reviews:
     - path: "DnsServerCore/**"
       instructions: |
         Preserve high-throughput non-blocking asynchronous socket networking.
-        Ensure all custom Sentinel-Labs patches adhere to upstream code contracts to maintain clean upstream sync.
+        Ensure all custom SentinelLabs patches adhere to upstream code contracts to maintain clean upstream sync.
 
 knowledge_base:
   web_search:

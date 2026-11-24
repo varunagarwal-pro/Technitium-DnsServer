@@ -1,6 +1,6 @@
 name: Upstream gate
 
-# Runs on the sync/upstream-* pull requests opened by the Sentinel-Labs fleet engine.
+# Runs on the sync/upstream-* pull requests opened by the SentinelLabs fleet engine.
 # The engine never pushes to master; a human merges the PR once this gate is green.
 on:
   pull_request:

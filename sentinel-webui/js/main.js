@@ -5157,7 +5157,7 @@ function updateChartTheme(chart) {
     }
 }
 
-// --- Sentinel-Labs: Display Time Zone (Browser / IST / UTC) ---
+// --- SentinelLabs: Display Time Zone (Browser / IST / UTC) ---
 // Server timestamps are UTC; this only changes how the web console renders them.
 var DISPLAY_TZ_OPTIONS = {
     local: { offset: null, name: "Browser local time" },
@@ -5250,7 +5250,7 @@ function convertLogViewerTimestamps() {
     }
 }
 
-// --- Sentinel-Labs: App shell navigation sync ---
+// --- SentinelLabs: App shell navigation sync ---
 function markActiveNav(tabName) {
     $(".sidebar-nav-item").removeClass("active").children("a").removeAttr("aria-current");
     $("#sidebarNavItem" + tabName).addClass("active").children("a").attr("aria-current", "page");
@@ -5276,7 +5276,7 @@ function syncAppShellToTab(tabName) {
     }
 }
 
-// --- Sentinel-Labs: Rich dashboard (KPI grid & server status bar) ---
+// --- SentinelLabs: Rich dashboard (KPI grid & server status bar) ---
 function matrixQueryLogLink(label, rcode, responseType) {
     if ((rcode == null) && (responseType == null))
         return "";
